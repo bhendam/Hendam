@@ -9,8 +9,9 @@
    عند تعديل أي ملف: غيّر رقم النسخة في VERSION حتى يأخذ
    المستخدمون التحديث بدل النسخة القديمة المخزَّنة.
    =========================================================== */
-const VERSION = 'v1.0.2';
+const VERSION = 'v1.1.0';
 const CACHE   = 'fish-ledger-' + VERSION;
+const FONTS   = 'fish-ledger-fonts';   // ثابت: الخطوط لا تتغيّر مع نسخ التطبيق
 
 const ASSETS = [
   './',
@@ -35,7 +36,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k.startsWith('fish-ledger-') && k !== CACHE)
+        keys.filter(k => k.startsWith('fish-ledger-') && k !== CACHE && k !== FONTS)
             .map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
@@ -49,6 +50,20 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+
+  /* خطوط Google: نخزّنها أول مرة فيعمل التطبيق بخطّه بدون إنترنت بعدها */
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    e.respondWith(
+      caches.open(FONTS).then(c =>
+        c.match(req).then(hit => hit || fetch(req).then(res => {
+          if (res && (res.ok || res.type === 'opaque')) c.put(req, res.clone());
+          return res;
+        }).catch(() => hit))
+      )
+    );
+    return;
+  }
+
   if (url.origin !== location.origin) return;
 
   if (req.mode === 'navigate') {

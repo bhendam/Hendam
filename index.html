@@ -9,228 +9,384 @@
 <meta name="apple-mobile-web-app-title" content="دفتر السماكة">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="إدارة تجارة الأسماك — سجل تراكمي يعمل بدون إنترنت">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%230F7B76'/><rect x='146' y='112' width='220' height='288' rx='16' fill='%23ffffff' /><rect x='216' y='80' width='80' height='48' rx='12' fill='%23A97B22'/><rect x='236' y='64' width='40' height='24' rx='8' fill='%23ffffff' opacity='0.9'/><line x1='186' y1='170' x2='326' y2='170' stroke='%230F7B76' stroke-width='12' stroke-linecap='round' opacity='0.3'/><line x1='186' y1='210' x2='276' y2='210' stroke='%230F7B76' stroke-width='12' stroke-linecap='round' opacity='0.3'/><polygon points='190,320 140,290 140,350' fill='%230F7B76'/><path d='M 190 320 Q 260 260 330 320 Q 260 380 190 320 Z' fill='%230F7B76'/><circle cx='295' cy='315' r='6' fill='%23A97B22'/></svg>">
 <link rel="alternate icon" href="icons/icon-192.png">
 <title>دفتر السماكة — إدارة تجارة الأسماك</title>
 <style>
+/* ==========================================================================
+   دفتر السماكة — النظام البصري
+
+   المبادئ:
+   ١. الخط أولاً. الخطوط الافتراضية للعربي على الهواتف (Geeza / Noto Naskh)
+      رفيعة ومنخفضة التباين وتُقرأ بصعوبة في ضوء السوق. نستخدم
+      IBM Plex Sans Arabic — مصمَّم أصلاً لواجهات البيانات، بأوزان حقيقية
+      وعدّادات مفتوحة تميّز ب/ت/ث/ن عند المقاسات الصغيرة.
+   ٢. لا تباعد حروف في العربي إطلاقاً. letter-spacing يفكّ الاتصال بصرياً
+      ويجعل النص أصعب. المسافات للاتينية فقط.
+   ٣. تدرّج رمادي واحد + لون أساسي واحد + زوج دلالي (مدين/دائن) فقط.
+      هوية الأقسام بشريط رفيع لا بخلفية ملوّنة تأكل التباين.
+   ٤. كل نص أساسي فوق ٧:١ تباين، والثانوي فوق ٤٫٨:١.
+   ٥. الأرقام جدولية دائماً حتى تصطفّ الخانات رأسياً في الجداول.
+   ========================================================================== */
+
+/* ---------------- الرموز ---------------- */
 :root{
-  --ink:#08222E; --ink-2:#123A4A; --mist:#EDF3F4; --card:#FFFFFF; --line:#D9E4E7;
-  --sea:#0E7C86; --sea-soft:#E2F1F2;
-  --brass:#B0762A; --brass-soft:#FBF1E2;
-  --debt:#A82A38; --debt-soft:#FBEAEC;
-  --paid:#25714F; --paid-soft:#E6F2EC;
-  --muted:#5E7681;
-  --accent:var(--sea); --accent-soft:var(--sea-soft); --tint:var(--mist);
-  --r:14px; --shadow:0 1px 2px rgba(8,34,46,.06),0 8px 24px -16px rgba(8,34,46,.35);
-  --font:"Segoe UI","Noto Kufi Arabic","Cairo",Tahoma,system-ui,-apple-system,sans-serif;
-  --dlgbg:rgba(8,34,46,.55);
-  --num:"SF Mono",ui-monospace,"Menlo","Consolas",monospace;
+  /* التدرّج المحايد — من حبر الميناء إلى ضباب الثلج */
+  --ink:#0A1F2A;          /* النص الأساسي  16.1:1 */
+  --ink-2:#24505E;        /* عناوين ثانوية  7.9:1 */
+  --muted:#4C6A76;        /* نص ثانوي       5.6:1 */
+  --faint:#8AA3AD;        /* تلميحات معطّلة */
+  --line:#DBE5E9;
+  --line-2:#BFD1D8;
+  --bg:#F4F7F8;
+  --card:#FFFFFF;
+  --card-2:#EFF4F6;       /* رأس الجدول والتظليل */
+
+  /* الأساسي */
+  --primary:#0B6E75;
+  --primary-ink:#05545A;
+  --primary-bg:#E1EFF0;
+
+  /* الزوج الدلالي */
+  --debt:#A32130;   --debt-bg:#FBECEE;
+  --credit:#186349; --credit-bg:#E6F2EC;
+  --warn:#8A5A00;   --warn-bg:#FAF1DE;
+
+  /* توافق مع الأسماء القديمة في الكود */
+  --sea:var(--primary); --sea-soft:var(--primary-bg);
+  --brass:var(--warn);  --brass-soft:var(--warn-bg);
+  --paid:var(--credit); --paid-soft:var(--credit-bg);
+  --debt-soft:var(--debt-bg); --mist:var(--bg); --ink-2x:var(--ink-2);
+
+  --accent:var(--primary); --accent-soft:var(--primary-bg); --tint:var(--bg);
+  --r:14px;
+  --shadow:0 1px 2px rgba(10,31,42,.05), 0 10px 26px -20px rgba(10,31,42,.5);
+  --dlgbg:rgba(10,31,42,.55);
+
+  --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,system-ui,-apple-system,sans-serif;
+  --num:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
 }
-/* ثيمات الأقسام: تلوين الخلفية مؤقتاً ليعرف المستخدم مكانه فوراً */
-body[data-theme=box]    {--accent:#B3313C;--accent-soft:#FBE9EA;--tint:#FCEFEF}
-body[data-theme=drivers]{--accent:#9A6B00;--accent-soft:#FBF0D9;--tint:#FBF4E4}
-body[data-theme=ice]    {--accent:#0A6E9E;--accent-soft:#E3F1F9;--tint:#EAF4FA}
-/* وضع ليلي: الشغل بيبدأ ٤ الفجر، والشاشة البيضا في الضلمة موجعة */
+
+/* هوية الأقسام: الشريط والأيقونة فقط. الخلفية تلميح ٣٪ لا صبغة كاملة. */
+body[data-theme=box]    {--accent:#9E2C36;--accent-soft:#FAEBEC;--tint:#FBF5F5}
+body[data-theme=drivers]{--accent:#7E5200;--accent-soft:#FAF0DC;--tint:#FBF7F0}
+body[data-theme=ice]    {--accent:#0A5C82;--accent-soft:#E2EFF6;--tint:#F2F7FA}
+
 @media (prefers-color-scheme:dark){
-  :root{--ink:#E6EEF0;--ink-2:#C7D8DC;--mist:#0C1B22;--card:#132831;--line:#22404B;
-    --sea:#3AA8B2;--sea-soft:#12333A;--brass:#D79A4A;--brass-soft:#332613;
-    --debt:#E8737F;--debt-soft:#3A1D22;--paid:#5FBF92;--paid-soft:#12301F;--muted:#8FA8B1;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);--dlgbg:rgba(0,0,0,.7)}
-  body[data-theme=box]{--accent:#E8737F;--accent-soft:#3A1D22;--tint:#1A1013}
-  body[data-theme=drivers]{--accent:#D7A34A;--accent-soft:#33280F;--tint:#191408}
-  body[data-theme=ice]{--accent:#4FAEDA;--accent-soft:#102C3B;--tint:#0A1A22}
-  header{background:linear-gradient(175deg,#061219,#0F2A33)}
-  input,select,textarea{background:#0E212A;color:var(--ink)}
-  nav{background:#0F2229}
-  .sheet{background:var(--card)}
-  .tape{background:#1B1A15;border-color:#3D3524}
-  .tape .k{color:#C9BA9C}.tape .who{color:#B99C6A}.tape .dots{border-bottom-color:#4A4130}
-  tfoot td{background:#16303A}
-  .empty{background:#0F242C}
-  td{border-bottom-color:#1B3540}
+  :root{
+    --ink:#EAF1F3; --ink-2:#BCD2D9; --muted:#9AB4BD; --faint:#6D8892;
+    --line:#22404B; --line-2:#2E5461; --bg:#0B1A21; --card:#12262F; --card-2:#183038;
+    --primary:#4FB3BB; --primary-ink:#7ACBD1; --primary-bg:#0F3239;
+    --debt:#F08A93;   --debt-bg:#3A1B20;
+    --credit:#66C79B; --credit-bg:#12321F;
+    --warn:#E0AE5B;   --warn-bg:#33270F;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -20px rgba(0,0,0,.9);
+    --dlgbg:rgba(0,0,0,.68);
+  }
+  body[data-theme=box]    {--accent:#F08A93;--accent-soft:#3A1B20;--tint:#160F11}
+  body[data-theme=drivers]{--accent:#E0AE5B;--accent-soft:#33270F;--tint:#15110A}
+  body[data-theme=ice]    {--accent:#5EB3DC;--accent-soft:#10303F;--tint:#0A161C}
 }
+
+/* ---------------- الأساس ---------------- */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
 html,body{margin:0;padding:0}
-body{font-family:var(--font);background:var(--tint);color:var(--ink);font-size:15px;line-height:1.55;
-  padding-bottom:calc(80px + env(safe-area-inset-bottom));transition:background .25s}
-.num{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.02em;direction:ltr;display:inline-block}
+body{
+  font-family:var(--font);
+  background:var(--tint);
+  color:var(--ink);
+  font-size:16px;
+  line-height:1.65;          /* العربي يحتاج فسحة أكبر بين السطور */
+  letter-spacing:0;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  transition:background .2s;
+}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
 
-header{position:sticky;top:0;z-index:40;background:linear-gradient(175deg,var(--ink),var(--ink-2));color:#fff;
-  padding:calc(12px + env(safe-area-inset-top)) 16px 0;box-shadow:0 6px 20px -12px rgba(8,34,46,.9)}
-.brand{display:flex;align-items:center;gap:10px;padding-bottom:12px}
-.brand h1{margin:0;font-size:16px;font-weight:700}
-.brand .mark{width:32px;height:32px;border-radius:9px;flex:0 0 auto;background:var(--accent);display:grid;place-items:center;
-  font-size:15px;overflow:hidden;transition:background .25s}
+/* الأرقام جدولية في كل مكان حتى تصطفّ الخانات */
+.num,td.n,th.n,input[type=number],input[inputmode=decimal],input[inputmode=numeric]{
+  font-family:var(--num);
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1,"lnum" 1;
+  direction:ltr;
+}
+.num{display:inline-block}
+.flow{font-family:var(--font);direction:rtl;display:inline-block}
+
+/* ---------------- الترويسة ---------------- */
+header{
+  position:sticky;top:0;z-index:40;
+  background:var(--card);
+  color:var(--ink);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 0;
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:11px;padding-bottom:11px}
+.brand h1{margin:0;font-size:17px;font-weight:600;line-height:1.3}
+.brand .mark{width:36px;height:36px;border-radius:10px;flex:0 0 auto;background:var(--accent);
+  display:grid;place-items:center;font-size:17px;overflow:hidden;color:#fff}
 .brand .mark.own{background:none}
-.brand .mark svg{width:100%;height:100%;display:block}
-.brand .mark img{width:100%;height:100%;object-fit:cover}
-.brand .today{margin-inline-start:auto;font-size:11px;color:#9FC0C7;text-align:left}
-.brand .today b{display:block;font-size:12.5px;color:#DDEAEC}
-.hdr-sub{margin-top:1px;font-size:11px;color:#7FA5AE}
-.band{height:4px;background:var(--accent);margin:0 -16px;transition:background .25s}
+.brand .mark img,.brand .mark svg{width:100%;height:100%;object-fit:cover;display:block}
+.brand .today{margin-inline-start:auto;text-align:left;font-size:12px;color:var(--muted)}
+.brand .today b{display:block;font-size:14px;color:var(--ink-2);font-weight:600;
+  font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
+.hdr-sub{margin-top:1px;font-size:12.5px;color:var(--muted);font-weight:400}
+.band{height:3px;background:var(--accent);margin:0 -16px;border-radius:2px 2px 0 0}
 
-main{padding:14px 12px 8px;max-width:760px;margin:0 auto}
-.eyebrow{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.09em;color:var(--muted);margin:22px 4px 10px}
-.eyebrow::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--accent)}
-.eyebrow.brass::before{background:var(--brass)}
+/* ---------------- التخطيط ---------------- */
+main{padding:16px 13px 8px;max-width:820px;margin:0 auto}
+.sec-title{font-size:15px;font-weight:600;color:var(--ink);margin:26px 2px 10px;
+  display:flex;align-items:center;gap:9px}
+.sec-title span.n{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:7px;
+  display:grid;place-items:center;font-size:12px;font-weight:600;font-family:var(--num)}
+main>.sec-title:first-child{margin-top:4px}
+
+.eyebrow{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;
+  color:var(--ink-2);margin:24px 2px 10px;letter-spacing:0}
+.eyebrow::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+.eyebrow.brass::before{background:var(--warn)}
 .eyebrow.debt::before{background:var(--debt)}
-.eyebrow .free{font-weight:500;letter-spacing:0}
-main>.eyebrow:first-child{margin-top:2px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
-.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
-.note{font-size:12px;color:var(--muted);margin:10px 2px 0}
-.sec-title{font-size:13px;font-weight:700;color:var(--ink);margin:20px 4px 8px;display:flex;align-items:center;gap:7px}
-.sec-title span.n{background:var(--ink);color:#fff;width:19px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:11px}
+.eyebrow .free{font-weight:400;color:var(--muted);font-size:13px}
+main>.eyebrow:first-child{margin-top:4px}
 
-/* بطاقات اللوحة القابلة للضغط */
-.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:13px;box-shadow:var(--shadow);
-  width:100%;text-align:right;position:relative;overflow:hidden;display:block;font-family:inherit;cursor:pointer;margin-bottom:10px}
-.tile::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--accent)}
-.tile.debt::after{background:var(--debt)} .tile.brass::after{background:var(--brass)}
-.tile.paid::after{background:var(--paid)} .tile.ice::after{background:#0A6E9E}
-.tile .lbl{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
-.tile .lbl .car{margin-inline-start:auto;color:var(--muted);font-size:11px;font-weight:600}
-.tile .val{font-size:22px;font-weight:700;margin-top:3px;letter-spacing:-.03em}
-.tile .val.sm{font-size:18px}
-.tile .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
-.tile[aria-expanded=true]{border-color:var(--accent)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
+.row{display:flex;gap:11px}.row>*{flex:1;min-width:0}
+.note{font-size:13px;color:var(--muted);margin:11px 2px 0;line-height:1.6}
+
+/* ---------------- بطاقات اللوحة ---------------- */
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 15px;box-shadow:var(--shadow);width:100%;text-align:right;position:relative;
+  overflow:hidden;display:block;font-family:inherit;cursor:pointer;margin-bottom:11px;color:var(--ink)}
+.tile::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:var(--accent)}
+.tile.debt::after{background:var(--debt)}
+.tile.brass::after{background:var(--warn)}
+.tile.paid::after{background:var(--credit)}
+.tile.ice::after{background:#0A5C82}
+.tile .lbl{font-size:13.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.tile .lbl .car{margin-inline-start:auto;color:var(--faint);font-size:13px}
+.tile .val{font-size:27px;font-weight:600;margin-top:3px;line-height:1.25;color:var(--ink);
+  font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
+.tile .val.sm{font-size:21px}
+.tile .sub{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.55}
+.tile[aria-expanded=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .grid2 .tile{margin-bottom:0}
-.drill{background:#fff;border:1px solid var(--accent);border-top:0;border-radius:0 0 var(--r) var(--r);margin:-10px 0 12px;padding:4px 12px 6px}
-.drow{display:flex;align-items:center;gap:8px;padding:10px 2px;border-bottom:1px solid #F0F5F6;width:100%;background:none;
-  border-inline:0;border-top:0;font-family:inherit;font-size:13.5px;text-align:right;cursor:pointer}
-.drow:last-child{border-bottom:0}
-.drow b{margin-inline-start:auto;font-family:var(--num);direction:ltr}
-.drow .go{color:var(--muted);font-size:15px}
-
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:right;font-size:10.5px;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:0 5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:9px 5px;border-bottom:1px solid #F0F5F6}
-tr:last-child td{border-bottom:0}
-td.n,th.n{text-align:left;font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
-tfoot td{font-weight:700;border-top:2px solid var(--line);background:#F8FBFB}
-.tname{font-weight:600}
-.empty{text-align:center;padding:24px 14px;color:var(--muted);font-size:13.5px;background:#F7FAFB;border:1px dashed var(--line);border-radius:12px}
-.empty b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:3px}
-
-label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 5px 2px}
-label .hint{font-weight:500;color:var(--muted);font-size:11px}
-input,select,textarea,button{font-family:inherit;font-size:16px}
-input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#FBFDFD;color:var(--ink);appearance:none}
-input[type=number],input[inputmode=decimal],input[inputmode=numeric]{font-family:var(--num);direction:ltr;text-align:right}
-input[type=date]{direction:ltr;text-align:right}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);background:#fff}
-.field{margin-bottom:12px}
-.field.locked input{background:var(--accent-soft);border-style:dashed;font-weight:700}
-.with-btn{display:flex;gap:8px}.with-btn input{flex:1}.with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:12px}
-button{cursor:pointer;border:0;border-radius:10px;font-weight:700}
-.btn{background:var(--accent);color:#fff;padding:13px 16px;width:100%;font-size:15px}
-.btn:active{transform:translateY(1px)}
-.btn.brass{background:var(--brass)}
-.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.btn.wa{background:#128C7E}
-.btn.dark{background:var(--ink)}
-.btn.danger{background:var(--debt-soft);color:var(--debt);border:1px solid #F0CFD3}
-.btn.sm{padding:11px 14px;font-size:12.5px;width:auto;min-height:44px}
-nav button{min-height:48px}
-.seg button{min-height:42px}
-.btnrow{display:flex;gap:8px;margin-bottom:12px}.btnrow .btn{flex:1}
-
-.seg{display:flex;gap:4px;background:rgba(8,34,46,.07);padding:4px;border-radius:12px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
-.seg::-webkit-scrollbar{display:none}
-.seg button{flex:1 0 auto;background:none;color:var(--muted);padding:9px 12px;font-size:13px;border-radius:9px;white-space:nowrap}
-.seg button[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(8,34,46,.12)}
-.seg.inner{background:none;padding:0;gap:6px}
-.seg.inner button{flex:0 0 auto;border:1px solid var(--line);background:#fff;padding:7px 13px;font-size:12.5px;border-radius:20px}
-.seg.inner button[aria-selected=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-.tape{background:#FFFDF8;border:1px solid #EADCC2;border-radius:4px;padding:16px;margin-bottom:12px;position:relative}
-.tape::before,.tape::after{content:"";position:absolute;inset-inline:-1px;height:8px;background:radial-gradient(circle at 5px -2px,var(--tint) 6px,#0000 6.5px) repeat-x;background-size:10px 8px}
-.tape::before{top:-1px;transform:rotate(180deg)}.tape::after{bottom:-1px}
-.tape h3{margin:0 0 2px;font-size:14px}
-.tape .who{font-size:12px;color:#8A6B3C;margin-bottom:12px}
-.tline{display:flex;align-items:baseline;gap:6px;padding:5px 0;font-size:13.5px}
-.tline .k{color:#5B4A32;white-space:nowrap}
-.tline .dots{flex:1;border-bottom:1px dotted #D3BE96;transform:translateY(-3px)}
-.tline .v{font-family:var(--num);direction:ltr;font-weight:600;white-space:nowrap}
-.tline.minus .v{color:var(--debt)}
-.tline.rule{border-top:1px solid #E3D2B2;margin-top:6px;padding-top:9px}
-.tline.total{margin-top:8px;padding:11px 12px;background:var(--ink);color:#fff;border-radius:8px}
-.tline.total .k{color:#9FC0C7;font-weight:700}.tline.total .dots{border-bottom-color:#2C5361}.tline.total .v{font-size:18px;color:#fff}
-
-.rec{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;background:#fff}
-.rec.void{opacity:.55}
-.rec .top{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
-.rec .top b{font-size:14px}
-.rec .top .date{margin-inline-start:auto;font-size:11.5px;color:var(--muted);font-family:var(--num);direction:ltr}
-.rec .meta{font-size:12.5px;color:var(--muted)}
-.rec .acts{display:flex;gap:7px;margin-top:9px}
-.tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--accent-soft);color:var(--accent)}
-.tag.void{background:var(--debt-soft);color:var(--debt)}
-.tag.brass{background:var(--brass-soft);color:var(--brass)}
-.tag.edit{background:#EEE6F7;color:#6B3FA0}
-.chips{display:flex;flex-wrap:wrap;gap:7px}
-.chip{font-size:12.5px;padding:6px 11px;border-radius:20px;background:var(--mist);border:1px solid var(--line);display:flex;align-items:center;gap:6px}
-.chip .n{font-family:var(--num);color:var(--muted);font-size:11.5px}
-.chip button{background:none;padding:0 2px;color:var(--muted);font-size:13px}
-.qr{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none}
-.qr::-webkit-scrollbar{display:none}
-.qr button{flex:0 0 auto;background:#fff;border:1px solid var(--line);color:var(--muted);padding:6px 11px;border-radius:20px;font-size:12.5px}
-.qr button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
-.diff{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:10px;background:var(--mist);margin-bottom:8px;font-size:13px}
-.diff b{font-family:var(--num);direction:ltr}
-.diff.short{background:var(--debt-soft);color:var(--debt)}
-.diff.over{background:var(--paid-soft);color:var(--paid)}
-.flow{font-family:var(--num);direction:ltr;display:inline-block}
-.bar{display:flex;height:9px;border-radius:6px;overflow:hidden;background:var(--mist);margin-top:9px}
+.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--card-2);margin-top:11px}
 .bar i{display:block;height:100%}
 
-nav{position:fixed;inset-inline:0;bottom:0;z-index:50;background:var(--card);
-  border-top:1px solid var(--line);display:flex;padding:6px 2px calc(6px + env(safe-area-inset-bottom))}
-nav button{flex:1;background:none;padding:6px 1px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600}
-nav button .ic{font-size:19px;line-height:1;filter:grayscale(1) opacity(.5)}
-nav button[aria-selected=true]{color:var(--accent)}
-nav button[aria-selected=true] .ic{filter:none}
+.drill{background:var(--card);border:1px solid var(--accent);border-top:0;
+  border-radius:0 0 var(--r) var(--r);margin:-11px 0 12px;padding:2px 13px 4px}
+.drow{display:flex;align-items:center;gap:9px;padding:13px 2px;border-bottom:1px solid var(--line);
+  width:100%;background:none;border-inline:0;border-top:0;font-family:inherit;font-size:15px;
+  text-align:right;cursor:pointer;color:var(--ink);min-height:50px}
+.drow:last-child{border-bottom:0}
+.drow b{margin-inline-start:auto;font-family:var(--num);font-variant-numeric:tabular-nums;
+  direction:ltr;font-size:16px;font-weight:600}
+.drow .go{color:var(--faint);font-size:18px}
 
-#toast{position:fixed;inset-inline:16px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:95;display:flex;flex-direction:column;gap:8px;pointer-events:none;align-items:center}
-.toast{background:var(--ink);color:#fff;padding:11px 16px;border-radius:22px;font-size:13.5px;font-weight:600;box-shadow:0 12px 30px -10px rgba(8,34,46,.6);animation:pop .25s ease}
-.toast.err{background:var(--debt)}.toast.ok{background:var(--paid)}
+/* ---------------- الجداول ---------------- */
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{text-align:right;font-size:12.5px;color:var(--muted);font-weight:600;
+  padding:9px 8px;background:var(--card-2);white-space:nowrap;border-bottom:2px solid var(--line-2)}
+th:first-child{border-start-start-radius:8px}
+th:last-child{border-start-end-radius:8px}
+td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink)}
+tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 45%,transparent)}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:left}
+td.n{font-size:15px;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:600;border-top:2px solid var(--line-2);background:var(--card-2);font-size:15px}
+tfoot tr:nth-child(even) td{background:var(--card-2)}
+.tname{font-weight:600}
+.money-neg{color:var(--credit)}
+.money-pos{color:var(--debt)}
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -3px;padding:0 3px}
+.tscroll table{min-width:max-content}
+
+.empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14.5px;
+  background:var(--card-2);border:1px dashed var(--line-2);border-radius:12px;line-height:1.7}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px;font-weight:600}
+
+/* ---------------- النماذج ---------------- */
+label{display:block;font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 6px 2px}
+label .hint{font-weight:400;color:var(--muted);font-size:13px}
+input,select,textarea,button{font-family:inherit;font-size:16.5px;letter-spacing:0}
+input,select,textarea{width:100%;padding:13px 13px;border:1.5px solid var(--line-2);border-radius:11px;
+  background:var(--card);color:var(--ink);appearance:none;min-height:50px}
+input::placeholder{color:var(--faint)}
+input[type=number],input[inputmode=decimal],input[inputmode=numeric],input[type=date]{text-align:right}
+input:focus,select:focus,textarea:focus{outline:3px solid var(--accent);outline-offset:1px;
+  border-color:var(--accent)}
+.field{margin-bottom:14px}
+.field.locked input{background:var(--accent-soft);border-style:dashed;font-weight:600;color:var(--ink)}
+.with-btn{display:flex;gap:9px}.with-btn input{flex:1}
+.with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:14px}
+
+button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing:0}
+.btn{background:var(--accent);color:#fff;padding:14px 16px;width:100%;font-size:16px;min-height:52px}
+.btn:active{transform:translateY(1px)}
+.btn.brass{background:var(--warn)}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line-2)}
+.btn.wa{background:#0F7A6C}
+.btn.dark{background:var(--ink)}
+.btn.danger{background:var(--debt-bg);color:var(--debt);border:1.5px solid var(--debt)}
+.btn.sm{padding:11px 14px;font-size:14px;width:auto;min-height:46px}
+.btnrow{display:flex;gap:9px;margin-bottom:12px}.btnrow .btn{flex:1}
+
+/* ---------------- التبويبات ---------------- */
+.seg{display:flex;gap:5px;background:var(--card-2);padding:5px;border-radius:13px;margin-bottom:16px;
+  overflow-x:auto;scrollbar-width:none;border:1px solid var(--line)}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1 0 auto;background:none;color:var(--muted);padding:11px 14px;font-size:14.5px;
+  border-radius:9px;white-space:nowrap;min-height:46px}
+.seg button[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:600;
+  box-shadow:0 1px 3px rgba(10,31,42,.14)}
+.seg.inner{background:none;padding:0;gap:7px;border:0}
+.seg.inner button{flex:0 0 auto;border:1.5px solid var(--line-2);background:var(--card);
+  padding:9px 15px;font-size:14px;border-radius:22px;min-height:44px}
+.seg.inner button[aria-selected=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.qr{display:flex;gap:7px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.qr::-webkit-scrollbar{display:none}
+.qr button{flex:0 0 auto;background:var(--card);border:1.5px solid var(--line-2);color:var(--muted);
+  padding:9px 14px;border-radius:22px;font-size:14px;min-height:44px}
+.qr button[aria-selected=true]{background:var(--ink);color:var(--card);border-color:var(--ink);font-weight:600}
+
+/* ---------------- شريط الإيصال ---------------- */
+.tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:18px 17px;
+  margin-bottom:12px;position:relative}
+.tape::before,.tape::after{content:"";position:absolute;inset-inline:-1px;height:9px;
+  background:radial-gradient(circle at 5.5px -2px,var(--tint) 6.5px,#0000 7px) repeat-x;background-size:11px 9px}
+.tape::before{top:-2px;transform:rotate(180deg)}
+.tape::after{bottom:-2px}
+.tape h3{margin:0 0 3px;font-size:16px;font-weight:600}
+.tape .who{font-size:13.5px;color:var(--muted);margin-bottom:14px}
+.tline{display:flex;align-items:baseline;gap:7px;padding:7px 0;font-size:15px}
+.tline .k{color:var(--ink-2);white-space:nowrap}
+.tline .dots{flex:1;border-bottom:1.5px dotted var(--line-2);transform:translateY(-4px)}
+.tline .v{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-weight:600;white-space:nowrap}
+.tline.minus .v{color:var(--debt)}
+.tline.rule{border-top:1.5px solid var(--line-2);margin-top:7px;padding-top:11px}
+.tline.total{margin-top:10px;padding:14px 14px;background:var(--ink);color:#fff;border-radius:10px}
+.tline.total .k{color:#B9CFD6;font-weight:600}
+.tline.total .dots{border-bottom-color:#3A5E6B}
+.tline.total .v{font-size:21px;color:#fff}
+
+/* ---------------- بطاقات الحركات ---------------- */
+.rec{border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;background:var(--card)}
+.rec.void{opacity:.55}
+.rec .top{display:flex;align-items:center;gap:9px;margin-bottom:5px;flex-wrap:wrap}
+.rec .top b{font-size:15.5px;font-weight:600}
+.rec .top .date{margin-inline-start:auto;font-size:13px;color:var(--muted);
+  font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
+.rec .meta{font-size:14px;color:var(--muted);line-height:1.6}
+.rec .acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.tag{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:20px;
+  background:var(--accent-soft);color:var(--accent)}
+.tag.void{background:var(--debt-bg);color:var(--debt)}
+.tag.brass{background:var(--warn-bg);color:var(--warn)}
+.tag.dmg{background:var(--debt-bg);color:var(--debt)}
+.tag.edit{background:var(--card-2);color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:14px;padding:9px 14px;border-radius:22px;background:var(--card-2);
+  border:1px solid var(--line);display:flex;align-items:center;gap:7px;min-height:44px}
+.chip .n{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--muted);font-size:13.5px;direction:ltr}
+.more{width:100%;background:var(--card);border:1.5px dashed var(--line-2);color:var(--ink-2);
+  padding:14px;border-radius:12px;margin-bottom:12px;font-size:14.5px;min-height:50px}
+
+.diff{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;
+  border-radius:11px;background:var(--card-2);margin-bottom:9px;font-size:14.5px;color:var(--ink)}
+.diff b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-size:16px;white-space:nowrap}
+.diff.short{background:var(--debt-bg);color:var(--debt)}
+.diff.over{background:var(--credit-bg);color:var(--credit)}
+
+/* ---------------- التنقّل ---------------- */
+nav{position:fixed;inset-inline:0;bottom:0;z-index:50;background:var(--card);
+  border-top:1px solid var(--line-2);display:flex;padding:5px 2px calc(5px + env(safe-area-inset-bottom))}
+nav button{flex:1;background:none;padding:7px 1px;color:var(--muted);display:flex;flex-direction:column;
+  align-items:center;gap:3px;font-size:11.5px;font-weight:500;min-height:52px}
+nav button .ic{font-size:21px;line-height:1;filter:grayscale(1);opacity:.55}
+nav button[aria-selected=true]{color:var(--accent);font-weight:600}
+nav button[aria-selected=true] .ic{filter:none;opacity:1}
+
+/* ---------------- التنبيهات والحوارات ---------------- */
+#toast{position:fixed;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:95;
+  display:flex;flex-direction:column;gap:9px;pointer-events:none;align-items:center}
+.toast{background:var(--ink);color:#fff;padding:13px 18px;border-radius:24px;font-size:14.5px;
+  font-weight:500;box-shadow:0 14px 34px -12px rgba(10,31,42,.65);animation:pop .22s ease;max-width:100%}
+.toast.err{background:var(--debt)}
+.toast.ok{background:var(--credit)}
 @keyframes pop{from{opacity:0;transform:translateY(10px)}}
 
-#modal,#dlg{position:fixed;inset:0;z-index:99;background:var(--dlgbg);display:none;align-items:flex-end;justify-content:center}
-#dlg{z-index:120;align-items:center;padding:16px}
+#modal,#dlg{position:fixed;inset:0;z-index:99;background:var(--dlgbg);display:none;
+  align-items:flex-end;justify-content:center}
+#dlg{z-index:120;align-items:center;padding:18px}
 #modal.on,#dlg.on{display:flex}
-#dlg .sheet{border-radius:16px;max-width:420px;padding:18px}
-.errbox{border:1px solid var(--debt);background:var(--debt-soft);border-radius:14px;padding:16px;color:var(--debt)}
-.errbox b{display:block;margin-bottom:6px;font-size:15px}
-.more{width:100%;background:var(--card);border:1px dashed var(--line);color:var(--muted);padding:12px;border-radius:12px;margin-bottom:12px}
-.sheet{background:#fff;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));
-  max-height:88vh;overflow:auto;animation:up .22s ease}
-@keyframes up{from{transform:translateY(30px)}}
-.sheet h3{margin:0 0 4px;font-size:16px}
-.sheet .sub{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+.sheet{background:var(--card);width:100%;max-width:580px;border-radius:20px 20px 0 0;
+  padding:18px 17px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .2s ease}
+#dlg .sheet{border-radius:18px;max-width:440px;padding:20px}
+@keyframes up{from{transform:translateY(26px)}}
+.sheet h3{margin:0 0 5px;font-size:18px;font-weight:600}
+.sheet .sub{font-size:14px;color:var(--muted);margin:0 0 16px;line-height:1.65}
 
+.errbox{border:1.5px solid var(--debt);background:var(--debt-bg);border-radius:14px;padding:17px;color:var(--debt);font-size:15px;line-height:1.7}
+.errbox b{display:block;margin-bottom:7px;font-size:16.5px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(min-width:640px){
+  main{padding:20px 18px 8px}
+  .grid2{grid-template-columns:1fr 1fr}
+  table{font-size:15px}
+}
+
+/* ==========================================================================
+   الطباعة — تصميم التقارير الورقية
+   ورق أبيض، حبر أسود، بلا ظلال ولا ألوان خلفية إلا التظليل الخفيف للصفوف.
+   رأس الجدول يتكرر تلقائياً على كل صفحة، والمجاميع لا تنفصل عن جدولها.
+   ========================================================================== */
 #print{display:none}
 @media print{
-  header,nav,#toast,#modal,main{display:none!important}
-  body{background:#fff;padding:0;color:#000}
-  #print{display:block!important;padding:0}
-  .prt-head{display:flex;align-items:center;gap:12px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}
-  .prt-head img{width:56px;height:56px;object-fit:contain}
-  .prt-head h2{margin:0;font-size:18px}.prt-head p{margin:2px 0 0;font-size:12px;color:#444}
-  .prt-head .meta{margin-inline-start:auto;text-align:left;font-size:11px;color:#444}
-  #print table{width:100%;border-collapse:collapse;font-size:11.5px}
-  #print th,#print td{border:1px solid #999;padding:5px 6px}
-  #print th{background:#eee}
-  #print h3{font-size:14px;margin:16px 0 6px}
-  .prt-foot{margin-top:18px;border-top:1px solid #999;padding-top:6px;font-size:10px;color:#555;display:flex;justify-content:space-between}
-  @page{margin:12mm}
+  header,nav,#toast,#modal,#dlg,main{display:none!important}
+  html,body{background:#fff!important;color:#000!important;font-size:11pt;line-height:1.55}
+  #print{display:block!important;padding:0;color:#000}
+
+  .prt-head{display:flex;align-items:flex-start;gap:14px;padding-bottom:10px;
+    border-bottom:2.5pt solid #000;margin-bottom:16px}
+  .prt-head img{width:52px;height:52px;object-fit:contain}
+  .prt-head h2{margin:0;font-size:16pt;font-weight:700;line-height:1.3}
+  .prt-head p{margin:3px 0 0;font-size:11.5pt;font-weight:600}
+  .prt-head .meta{margin-inline-start:auto;text-align:left;font-size:9pt;color:#333;line-height:1.6;white-space:nowrap}
+
+  #print h3{font-size:12pt;margin:18px 0 7px;padding-bottom:4px;border-bottom:1pt solid #666;
+    page-break-after:avoid;break-after:avoid}
+  #print table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
+  #print thead{display:table-header-group}       /* رأس الجدول يتكرر على كل صفحة */
+  #print tfoot{display:table-footer-group}
+  #print tr{page-break-inside:avoid;break-inside:avoid}
+  #print th{background:#E8E8E8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;
+    border:0.6pt solid #555;padding:6px 7px;text-align:right;font-weight:700;font-size:9pt}
+  #print td{border:0.6pt solid #999;padding:5px 7px;text-align:right}
+  #print tbody tr:nth-child(even) td{background:#F6F6F6!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print td:last-child,#print th:last-child,
+  #print td.n,#print th.n{text-align:left;font-variant-numeric:tabular-nums}
+  #print tfoot td{font-weight:700;border-top:1.6pt solid #000;background:#EDEDED!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .prt-sign{margin-top:26px;display:flex;gap:40px;page-break-inside:avoid}
+  .prt-sign div{flex:1;border-top:1pt solid #000;padding-top:6px;font-size:9.5pt;text-align:center}
+  .prt-foot{margin-top:20px;border-top:1pt solid #999;padding-top:6px;font-size:8.5pt;color:#444;
+    display:flex;justify-content:space-between}
+  @page{margin:14mm 12mm}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media(min-width:620px){.grid2{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
@@ -285,6 +441,10 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const nf=new Intl.NumberFormat('en-US',{maximumFractionDigits:2});
 const money=n=>nf.format(Math.round((+n||0)*100)/100);
 const EGP=n=>money(n)+" ج.م";
+/* المبالغ في الجداول: صنف لوني ثابت — الأحمر «عليه» والأخضر «له» — ولا نعتمد
+   على اللون وحده، فالرقم السالب يظل مسبوقاً بإشارته. */
+const mcell=(v,flip)=>{const n=+v||0;const cls=Math.abs(n)<.005?'':((flip?-n:n)>0?'money-pos':'money-neg');
+  return `<td class="n ${cls}">${money(n)}</td>`};
 const todayISO=()=>new Date().toLocaleDateString('en-CA');
 const arDate=iso=>{if(!iso)return"—";const[y,m,d]=iso.split('-');return `${d}/${m}/${y}`};
 const sum=(a,f)=>a.reduce((t,x)=>t+(+f(x)||0),0);
@@ -1002,13 +1162,26 @@ function repAcct(){
   const target=F.ent?D.merchants.concat(D.farms).find(x=>x.id===F.ent):null;
   if(!target){
     const rows=D.merchants.map(m=>`<tr><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
-      <td class="n">${money(m.collected)}</td><td class="n" style="font-weight:700;color:${m.balance>0?'var(--debt)':'inherit'}">${money(m.balance)}</td></tr>`).join('');
+      <td class="n">${money(m.collected)}</td>${mcell(m.balance)}</tr>`).join('');
+    const mfoot=`<tfoot><tr><td>الإجمالي (${D.merchants.length} مبيع)</td>
+      <td class="n">${money(sumM(D.merchants,m=>m.invoiced))}</td>
+      <td class="n">${money(sumM(D.merchants,m=>m.collected))}</td>
+      <td class="n">${money(sumM(D.merchants,m=>m.balance))}</td></tr></tfoot>`;
+    const ffoot=`<tfoot><tr><td>الإجمالي (${D.farms.length} مزرعة)</td>
+      <td class="n">${sum(D.farms,f=>f.cycleCount)}</td><td class="n">${sum(D.farms,f=>f.cycleBoxes)}</td>
+      <td class="n">${money(sumM(D.farms,f=>f.balance))}</td></tr></tfoot>`;
     const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.cycleCount}</td>
-      <td class="n">${f.cycleBoxes}</td><td class="n" style="font-weight:700">${money(f.balance)}</td></tr>`).join('');
-    S.print={title:"تقرير الحسابات",html:`<h3>أرصدة المبايع</h3><table><thead><tr><th>المبيع</th><th>فواتير</th><th>محصّل</th><th>الرصيد</th></tr></thead><tbody>${rows}</tbody></table>
-      <h3>أرصدة المزارع</h3><table><thead><tr><th>المزرعة</th><th>فواتير الدورة</th><th>صناديق</th><th>الرصيد</th></tr></thead><tbody>${frows}</tbody></table>`};
-    return `<div class="eyebrow">أرصدة المبايع</div><div class="card">${rows?`<table><thead><tr><th>المبيع</th><th class="n">فواتير</th><th class="n">محصّل</th><th class="n">الرصيد</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">لا يوجد</div>'}</div>
-      <div class="eyebrow brass">أرصدة المزارع</div><div class="card">${frows?`<table><thead><tr><th>المزرعة</th><th class="n">فواتير</th><th class="n">صناديق</th><th class="n">الرصيد</th></tr></thead><tbody>${frows}</tbody></table>`:'<div class="empty">لا يوجد</div>'}</div>
+      <td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
+    const mth=`<thead><tr><th>المبيع</th><th class="n">فواتير</th><th class="n">محصّل</th><th class="n">الرصيد</th></tr></thead>`;
+    const fth=`<thead><tr><th>المزرعة</th><th class="n">فواتير الدورة</th><th class="n">صناديق</th><th class="n">الرصيد</th></tr></thead>`;
+    const mtbl=`<table>${mth}<tbody>${rows}</tbody>${mfoot}</table>`;
+    const ftbl=`<table>${fth}<tbody>${frows}</tbody>${ffoot}</table>`;
+    S.print={title:"تقرير الحسابات",html:`<h3>أرصدة المبايع</h3>${mtbl}<h3>أرصدة المزارع</h3>${ftbl}`};
+    return `<div class="eyebrow">أرصدة المبايع</div>
+      <div class="card">${rows?`<div class="tscroll">${mtbl}</div>`:'<div class="empty">لا يوجد</div>'}
+      <p class="note">الأحمر = مديونية عليه · الأخضر = دفعة مقدّمة له.</p></div>
+      <div class="eyebrow brass">أرصدة المزارع</div>
+      <div class="card">${frows?`<div class="tscroll">${ftbl}</div>`:'<div class="empty">لا يوجد</div>'}</div>
       <p class="note">اختر جهة من الفلتر لكشف حساب تفصيلي بحركة الرصيد.</p>`;
   }
   const isM=target.type==='merchant';
@@ -1025,11 +1198,16 @@ function repAcct(){
     return `<tr><td class="n">${arDate(e.date)}</td><td>${({invoice:'فاتورة',collection:'تحصيل',settlement:'تصفية',opening_cash:'رصيد افتتاحي'})[e.type]}</td>
       <td>${esc(e.type==='invoice'?(isM?D.nameOf(e.farmId):D.nameOf(e.merchantId)):(e.note||'—'))}</td>
       <td class="n">${dr?money(dr):''}</td><td class="n">${cr?money(cr):''}</td><td class="n" style="font-weight:700">${money(run)}</td></tr>`}).join('');
-  const head=`<table><thead><tr><th>التاريخ</th><th>البيان</th><th>التفصيل</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const head=`<table><thead><tr><th>التاريخ</th><th>البيان</th><th>التفصيل</th>
+    <th class="n">مدين</th><th class="n">دائن</th><th class="n">الرصيد</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="3">الإجمالي</td>
+      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='invoice'?P(e.amount):(e.type==='opening_cash'&&+e.amount>0?P(e.amount):0)),0)/100)}</td>
+      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='collection'?P(e.amount):(e.type==='settlement'?P(e.total):(e.type==='opening_cash'&&+e.amount<0?-P(e.amount):0))),0)/100)}</td>
+      <td class="n">${money(runP/100)}</td></tr></tfoot></table>`;
   S.print={title:`كشف حساب — ${target.name}`,html:head,phone:target.phone};
   return `<div class="eyebrow">كشف حساب ${esc(target.name)}</div>
     <div class="card">${target.place?`<div class="note" style="margin:0 0 8px">📍 ${esc(target.place)}${target.phone?` · ☎ ${esc(target.phone)}`:''}</div>`:''}
-    ${rows?`<div style="overflow-x:auto">${head}</div>`:'<div class="empty">لا حركات في المدى المحدد</div>'}
+    ${rows?`<div class="tscroll">${head}</div>`:'<div class="empty">لا حركات في المدى المحدد</div>'}
     <div class="diff ${target.balance<0?'over':''}" style="margin-top:12px">
       <span>الرصيد النقدي ${target.balance<0?(isM?'— دفعة مقدّمة له':'— مدفوع بالزيادة'):(isM?'— عليه':'— لها')}</span>
       <b>${money(Math.abs(target.balance))}</b></div>
@@ -1058,11 +1236,17 @@ function repBox(){
       const bi=ci,bd=cd;ci+=x.iIn-x.iOut;cd+=x.dIn-x.dOut;
       return `<tr><td class="n">${arDate(dt)}</td><td class="n">${bi}/${bd}</td><td class="n" style="color:var(--paid)">${x.iIn+x.dIn}</td>
         <td class="n" style="color:var(--debt)">${x.iOut+x.dOut}</td><td class="n" style="font-weight:700">${ci}/${cd}</td></tr>`}).join('');
-    const tbl=`<table><thead><tr><th>اليوم</th><th>افتتاحي سليم/تالف</th><th>وارد</th><th>صادر</th><th>ختامي سليم/تالف</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const tin=Object.values(days).reduce((t,x)=>t+x.iIn+x.dIn,0);
+    const tout=Object.values(days).reduce((t,x)=>t+x.iOut+x.dOut,0);
+    const tbl=`<table><thead><tr><th>اليوم</th><th class="n">افتتاحي سليم/تالف</th>
+      <th class="n">وارد</th><th class="n">صادر</th><th class="n">ختامي سليم/تالف</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td class="n">${oI}/${oD}</td>
+      <td class="n money-neg">${tin}</td><td class="n money-pos">${tout}</td>
+      <td class="n">${ci}/${cd}</td></tr></tfoot></table>`;
     S.print={title:`تقرير البكش اليومي — ${D.nameOf(loc)}`,html:tbl};
     return t+`<div class="eyebrow">تقرير يومي — ${esc(D.nameOf(loc))}</div>
       <div class="card"><div class="diff"><span>رصيد افتتاحي للفترة</span><b>${oI} سليم · ${oD} تالف</b></div>
-      ${rows?`<div style="overflow-x:auto">${tbl}</div>`:'<div class="empty">لا حركات</div>'}
+      ${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات</div>'}
       <div class="diff over"><span>رصيد ختامي</span><b>${ci} سليم · ${cd} تالف</b></div></div>`;
   }
   if(S.sub.repbox==='audit'){
@@ -1070,9 +1254,12 @@ function repBox(){
     const rows=a.map(e=>`<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.locId))}</td>
       <td class="n">${e.book.intact}/${e.book.damaged}</td><td class="n">${e.counted.intact}/${e.counted.damaged}</td>
       <td class="n" style="color:var(--debt)">${(e.counted.intact-e.book.intact)+(e.counted.damaged-e.book.damaged)}</td></tr>`).join('');
-    const tbl=`<table><thead><tr><th>التاريخ</th><th>الجهة</th><th>دفتري</th><th>معدود</th><th>الفرق</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const dtot=sum(a,e=>(e.counted.intact-e.book.intact)+(e.counted.damaged-e.book.damaged));
+    const tbl=`<table><thead><tr><th>التاريخ</th><th>الجهة</th><th class="n">دفتري</th><th class="n">معدود</th>
+      <th class="n">الفرق</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4">صافي الفروق (${a.length} جرد)</td><td class="n">${dtot}</td></tr></tfoot></table>`;
     S.print={title:"تقرير الجرد",html:tbl};
-    return t+`<div class="eyebrow debt">تقارير الجرد</div><div class="card">${rows?tbl:'<div class="empty">لا عمليات جرد في المدى</div>'}</div>`;
+    return t+`<div class="eyebrow debt">تقارير الجرد</div><div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا عمليات جرد في المدى</div>'}</div>`;
   }
   if(S.sub.repbox==='dmg'){
     const per={};
@@ -1082,14 +1269,19 @@ function repBox(){
     const rows=Object.entries(per).map(([id,v])=>`<tr><td class="tname">${esc(D.nameOf(id))}</td><td class="n">${v.trips}</td>
       <td class="n">${v.ok}</td><td class="n" style="color:var(--debt);font-weight:700">${v.dmg}</td>
       <td class="n">${v.ok+v.dmg?Math.round(v.dmg/(v.ok+v.dmg)*100):0}%</td></tr>`).join('');
-    const tbl=`<table><thead><tr><th>السائق</th><th>حركات</th><th>سليم</th><th>تالف</th><th>نسبة التلف</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const V=Object.values(per),TO=sum(V,v=>v.ok),TD=sum(V,v=>v.dmg);
+    const tbl=`<table><thead><tr><th>السائق</th><th class="n">حركات</th><th class="n">سليم</th>
+      <th class="n">تالف</th><th class="n">نسبة التلف</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td>الإجمالي</td><td class="n">${sum(V,v=>v.trips)}</td><td class="n">${TO}</td>
+      <td class="n">${TD}</td><td class="n">${TO+TD?Math.round(TD/(TO+TD)*100):0}%</td></tr></tfoot></table>`;
     S.print={title:"تقرير التالف لكل سائق",html:tbl};
-    return t+`<div class="eyebrow debt">التالف لكل سائق</div><div class="card">${rows?tbl:'<div class="empty">لا حركات بكش مرتبطة بسائق في المدى</div>'}
+    return t+`<div class="eyebrow debt">التالف لكل سائق</div><div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات بكش مرتبطة بسائق في المدى</div>'}
       <p class="note">يُحسب من حركات البكش المسجَّل عليها سائق.</p></div>`;
   }
   const l=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent))).sort((a,b)=>b.seq-a.seq);
   const rows=l.map(e=>`<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td><td>${esc(legsTxt(e))}</td><td>${esc(e.note||'')}</td></tr>`).join('');
-  S.print={title:"سجل حركات البكش",html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table>`};
+  S.print={title:"سجل حركات البكش",html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th><th>ملاحظة</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr><td colspan="4">إجمالي الحركات: ${l.length}</td></tr></tfoot></table>`};
   const N=30,show=Math.min(l.length,N*((S.page||0)+1));
   return t+`<div class="eyebrow">كل الحركات (${l.length})</div>`
     +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),legsTxt(e))).join('')
@@ -1107,15 +1299,27 @@ function repDrv(){
     return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.driverId))}</td><td>${nm[e.type]}</td>
       <td>${esc(e.type==='trip'?(D.nameOf(e.routeId)||e.destination||'—'):(e.note||'—'))}</td>
       <td class="n">${money(v)}</td>${F.ent?`<td class="n" style="font-weight:700">${money(run)}</td>`:''}</tr>`}).join('');
-  const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th><th>المبلغ</th>${F.ent?'<th>الرصيد</th>':''}</tr></thead><tbody>${rows}</tbody></table>`;
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th>
+    <th class="n">المبلغ</th>${F.ent?'<th class="n">الرصيد</th>':''}</tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="4">إجمالي الحركات (${items.length})</td>
+      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='trip'?P(e.fare||e.cost):P(e.amount)),0)/100)}</td>
+      ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
   const who=F.ent?D.drivers.find(d=>d.id===F.ent):null;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
   const tot=D.drivers.filter(d=>!F.ent||d.id===F.ent);
+  const bal=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
+    <th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
+    ${tot.map(d=>`<tr><td class="tname">${esc(d.name)}</td><td class="n">${money(d.tripsCost)}</td>
+      <td class="n">${money(d.advances)}</td><td class="n">${money(d.paid)}</td>
+      ${mcell(d.balance,1)}</tr>`).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td class="n">${money(sumM(tot,d=>d.tripsCost))}</td>
+      <td class="n">${money(sumM(tot,d=>d.advances))}</td><td class="n">${money(sumM(tot,d=>d.paid))}</td>
+      <td class="n">${money(sumM(tot,d=>d.balance))}</td></tr></tfoot></table>`;
+  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
   return `<div class="eyebrow">حركات السائقين (${items.length})</div>
-    <div class="card">${rows?`<div style="overflow-x:auto">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
-    <div class="eyebrow">الأرصدة</div><div class="card"><table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th><th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
-    ${tot.map(d=>`<tr><td class="tname">${esc(d.name)}</td><td class="n">${money(d.tripsCost)}</td><td class="n">${money(d.advances)}</td>
-      <td class="n">${money(d.paid)}</td><td class="n" style="font-weight:700">${money(d.balance)}</td></tr>`).join('')}</tbody></table></div>`;
+    <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
+    <div class="eyebrow">الأرصدة</div><div class="card"><div class="tscroll">${bal}</div>
+    <p class="note">الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
 }
 function repIce(){
   const D=S.D,F=S.F;
@@ -1126,15 +1330,26 @@ function repIce(){
     return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.factoryId))}</td>
       <td>${isP?'تصفية':'توريد'}</td><td class="n">${isP?'':e.qty}</td><td class="n">${isP?'':money(e.unitPrice)}</td>
       <td>${esc(isP?(e.note||'—'):D.nameOf(e.farmId))}</td><td class="n">${money(v)}</td></tr>`}).join('');
-  const tbl=`<table><thead><tr><th>التاريخ</th><th>المصنع</th><th>النوع</th><th>بلاطات</th><th>السعر</th><th>الجهة</th><th>القيمة</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>المصنع</th><th>النوع</th><th class="n">بلاطات</th>
+    <th class="n">السعر</th><th>الجهة</th><th class="n">القيمة</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="3">الإجمالي (${items.length} حركة)</td>
+      <td class="n">${sum(items.filter(e=>e.type!=='factory_payment'),e=>e.qty)}</td><td></td><td></td>
+      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='factory_payment'?P(e.amount):P((+e.qty||0)*(+e.unitPrice||0))),0)/100)}</td>
+      </tr></tfoot></table>`;
   const who=F.ent?D.factories.find(f=>f.id===F.ent):null;
   S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
   const fs=D.factories.filter(f=>!F.ent||f.id===F.ent);
+  const bal=`<table><thead><tr><th>المصنع</th><th class="n">بلاطات</th><th class="n">القيمة</th>
+    <th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
+    ${fs.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.blocks}</td>
+      <td class="n">${money(f.value)}</td><td class="n">${money(f.paid)}</td>${mcell(f.balance)}</tr>`).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td class="n">${sum(fs,f=>f.blocks)}</td>
+      <td class="n">${money(sumM(fs,f=>f.value))}</td><td class="n">${money(sumM(fs,f=>f.paid))}</td>
+      <td class="n">${money(sumM(fs,f=>f.balance))}</td></tr></tfoot></table>`;
+  S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),html:tbl+"<h3>أرصدة المصانع</h3>"+bal,phone:who?.phone};
   return `<div class="eyebrow">حركات الثلج (${items.length})</div>
-    <div class="card">${rows?`<div style="overflow-x:auto">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
-    <div class="eyebrow">أرصدة المصانع</div><div class="card"><table><thead><tr><th>المصنع</th><th class="n">بلاطات</th><th class="n">القيمة</th><th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
-    ${fs.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.blocks}</td><td class="n">${money(f.value)}</td>
-      <td class="n">${money(f.paid)}</td><td class="n" style="font-weight:700">${money(f.balance)}</td></tr>`).join('')}</tbody></table></div>`;
+    <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
+    <div class="eyebrow">أرصدة المصانع</div><div class="card"><div class="tscroll">${bal}</div></div>`;
 }
 
 /* ---------- ٥) الإعدادات ---------- */
@@ -1782,12 +1997,15 @@ function runTests(){
 async function printDoc(title,bodyHTML){
   const c=S.co,F=S.F;
   const range=(F.from||F.to)?`الفترة: ${F.from?arDate(F.from):'البداية'} — ${F.to?arDate(F.to):'اليوم'}`:'كل الفترات';
+  const stamp=new Date().toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'});
   $('#print').innerHTML=`
     <div class="prt-head">${c.logo?`<img src="${c.logo}">`:''}
       <div><h2>${esc(c.name||'دفتر السماكة')}</h2><p>${esc(title)}</p></div>
-      <div class="meta">${esc(range)}<br>طُبع: ${arDate(todayISO())}${c.phone?`<br>☎ ${esc(c.phone)}`:''}</div></div>
+      <div class="meta">${esc(range)}<br>تاريخ الطباعة: ${esc(stamp)}${c.phone?`<br>☎ ${esc(c.phone)}`:''}</div></div>
     ${bodyHTML}
-    <div class="prt-foot"><span>${esc(c.name||'')}</span><span>دفتر السماكة — سجل تراكمي</span></div>`;
+    <div class="prt-sign"><div>توقيع المُعِدّ</div><div>توقيع المستلم</div><div>اعتماد الإدارة</div></div>
+    <div class="prt-foot"><span>${esc(c.name||'')}</span>
+      <span>سجل تراكمي — الأرقام محسوبة من الحركات المسجَّلة</span></div>`;
   /* بدون الانتظار، اللوجو (data-URL) قد لا يكون فُكّ تشفيره فيطبع التقرير بلا شعار */
   const img=$('#print img');
   if(img&&img.decode){try{await img.decode()}catch(e){}}
@@ -1813,12 +2031,18 @@ function receiptText(r){
   "",(S.co.name||"دفتر السماكة")].join("\n");
 }
 function receiptHTML(r){
-  const L=(k,v)=>`<tr><td>${k}</td><td style="text-align:left">${v}</td></tr>`;
-  return `<h3>إيصال تصفية — ${esc(r.farmName)} · ${arDate(r.date)}</h3><table>
-    ${L("عدد الفواتير",r.count+" فاتورة / "+r.boxes+" صندوق")}${L("إجمالي المبيعات",money(r.total))}
-    ${L("عمولة المكتب "+r.office+"%","− "+money(r.commission))}${L("مصاريف تشغيل","− "+money(r.expenses))}
-    ${L("صافي المزرعة",money(r.net))}${L("دين سابق","− "+money(r.prevDebt))}
-    ${L("<b>المستحق النهائي</b>","<b>"+money(r.payable)+" ج.م</b>")}</table>`;
+  const L=(k,v)=>`<tr><td>${k}</td><td class="n">${v}</td></tr>`;
+  return `<h3>إيصال تصفية — ${esc(r.farmName)} · ${arDate(r.date)}</h3>
+  <table><thead><tr><th>البيان</th><th class="n">المبلغ (ج.م)</th></tr></thead><tbody>
+    ${L("عدد الفواتير",r.count+" فاتورة / "+r.boxes+" صندوق")}
+    ${L("إجمالي المبيعات",money(r.total))}
+    ${L("عمولة المكتب "+r.office+"%","− "+money(r.commission))}
+    ${L("مصاريف تشغيل","− "+money(r.expenses))}
+    ${L("صافي المزرعة",money(r.net))}
+    ${L("دين سابق","− "+money(r.prevDebt))}</tbody>
+  <tfoot><tr><td>${r.payable>=0?"المستحق النهائي للمزرعة":"مستحق على المزرعة للمكتب"}</td>
+    <td class="n">${money(Math.abs(r.payable))}</td></tr></tfoot></table>
+  <p style="font-size:9.5pt;margin-top:10px">نسبة المزرعة ${r.farmRatio}% · العمولة مقرَّبة لأقرب ٥٠ جنيه.</p>`;
 }
 function dailyText(){
   const D=S.D,k=D.kpi,t=todayISO(),P=ty=>D.todays.filter(e=>e.type===ty);
@@ -1840,14 +2064,23 @@ function dailyHTML(){
   const D=S.D,k=D.kpi;
   const R=(a,b)=>`<tr><td>${a}</td><td style="text-align:left">${b}</td></tr>`;
   const inv=D.todays.filter(e=>e.type==='invoice');
-  return `<h3>حركة اليوم</h3><table>${R("فواتير البيع",inv.length+" فاتورة · "+money(k.todaySales)+" ج.م")}
+  return `<h3>حركة اليوم</h3>
+  <table><thead><tr><th>البند</th><th class="n">القيمة</th></tr></thead><tbody>
+    ${R("فواتير البيع",inv.length+" فاتورة · "+money(k.todaySales)+" ج.م")}
     ${R("التحصيلات",money(k.todayCollected)+" ج.م")}
-    ${R("الرحلات",D.todays.filter(e=>e.type==='trip').length)}</table>
-    <h3>الأرصدة</h3><table>${R("مديونية المبايع",money(k.merchantDebt))}${R("مستحقات المزارع",money(k.farmDue))}
-    ${R("مستحق السائقين",money(k.driverDue))}${R("مستحق الثلج",money(k.iceDue))}
-    ${R("إجمالي العهدة",D.custody.all+" صندوق")}</table>
-    <h3>تفصيل فواتير اليوم</h3><table><thead><tr><th>المزرعة</th><th>المبيع</th><th>صناديق</th><th>الإجمالي</th></tr></thead><tbody>
-    ${inv.map(i=>`<tr><td>${esc(D.nameOf(i.farmId))}</td><td>${esc(D.nameOf(i.merchantId))}</td><td>${i.boxes}</td><td>${money(i.amount)}</td></tr>`).join('')}</tbody></table>`;
+    ${R("الرحلات",D.todays.filter(e=>e.type==='trip').length+" رحلة")}</tbody></table>
+  <h3>الأرصدة الحالية</h3>
+  <table><thead><tr><th>الحساب</th><th class="n">الرصيد (ج.م)</th></tr></thead><tbody>
+    ${R("مديونية المبايع",money(k.merchantDebt))}${R("مستحقات المزارع",money(k.farmDue))}
+    ${R("مستحق السائقين",money(k.driverDue))}${R("مستحق الثلج",money(k.iceDue))}</tbody>
+  <tfoot><tr><td>إجمالي عهدة البكش</td><td class="n">${D.custody.all} صندوق</td></tr></tfoot></table>
+  <h3>تفصيل فواتير اليوم</h3>
+  <table><thead><tr><th>المزرعة</th><th>المبيع</th><th class="n">صناديق</th><th class="n">الإجمالي</th></tr></thead><tbody>
+    ${inv.map(i=>`<tr><td>${esc(D.nameOf(i.farmId))}</td><td>${esc(D.nameOf(i.merchantId))}</td>
+      <td class="n">${i.boxes}</td><td class="n">${money(i.amount)}</td></tr>`).join('')
+      ||'<tr><td colspan="4">لا فواتير اليوم</td></tr>'}</tbody>
+  <tfoot><tr><td colspan="2">الإجمالي</td><td class="n">${sum(inv,i=>i.boxes)}</td>
+    <td class="n">${money(k.todaySales)}</td></tr></tfoot></table>`;
 }
 
 /* ============ النسخ الاحتياطي ============ */
