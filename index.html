@@ -241,6 +241,16 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .btn.sm{padding:11px 14px;font-size:14px;width:auto;min-height:46px}
 .btnrow{display:flex;gap:9px;margin-bottom:12px}.btnrow .btn{flex:1}
 
+/* نسبة المكتب كرقمين: ٤ / ٩٦ */
+.ratio{display:flex;align-items:center;gap:10px}
+.ratio input{flex:1;text-align:center;font-size:19px;font-weight:600;
+  font-family:var(--num);font-variant-numeric:tabular-nums}
+.ratio span{font-size:21px;color:var(--muted);font-weight:600}
+
+/* أعمدة الداخل والخارج في التقارير */
+.cin{color:var(--credit);font-weight:600}
+.cout{color:var(--debt);font-weight:600}
+
 /* ---------------- التبويبات ---------------- */
 .seg{display:flex;gap:5px;background:var(--card-2);padding:5px;border-radius:13px;margin-bottom:16px;
   overflow-x:auto;scrollbar-width:none;border:1px solid var(--line)}
@@ -279,15 +289,25 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .tline.total .dots{border-bottom-color:#3A5E6B}
 .tline.total .v{font-size:21px;color:#fff}
 
-/* ---------------- بطاقات الحركات ---------------- */
-.rec{border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;background:var(--card)}
+/* ---------------- بطاقات الحركات (مضغوطة) ----------------
+   العمليات قد تتجاوز ٥٠ في اليوم: سطر واحد لكل حركة، والتفاصيل بالضغط. */
+.rec{border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--card);overflow:hidden}
 .rec.void{opacity:.55}
-.rec .top{display:flex;align-items:center;gap:9px;margin-bottom:5px;flex-wrap:wrap}
-.rec .top b{font-size:15.5px;font-weight:600}
-.rec .top .date{margin-inline-start:auto;font-size:13px;color:var(--muted);
-  font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
-.rec .meta{font-size:14px;color:var(--muted);line-height:1.6}
-.rec .acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.rec.open{border-color:var(--accent)}
+.rechead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;
+  padding:10px 12px;font-family:inherit;text-align:right;cursor:pointer;color:var(--ink);min-height:46px}
+.rec.open .rechead{background:var(--card-2)}
+.rechead .rt{font-size:14.5px;font-weight:600;white-space:nowrap;flex:0 0 auto;max-width:38%;
+  overflow:hidden;text-overflow:ellipsis}
+.rechead .rm{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+.rechead .rv{font-size:14.5px;font-weight:600;flex:0 0 auto;
+  font-variant-numeric:tabular-nums;direction:ltr}
+.rechead .rd{font-size:12px;color:var(--faint);flex:0 0 auto;direction:ltr}
+.rechead .tag{flex:0 0 auto}
+.recbody{padding:10px 12px 12px;border-top:1px solid var(--line)}
+.rec .meta{font-size:13.5px;color:var(--muted);line-height:1.6}
+.rec .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .tag{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:20px;
   background:var(--accent-soft);color:var(--accent)}
 .tag.void{background:var(--debt-bg);color:var(--debt)}
@@ -550,11 +570,12 @@ const getMeta=async k=>(await rq(st('meta','readonly').get(k)))?.v;
 
 /* ============ نموذج البكش ============ */
 const WH='WH';
-const VIRT={'#PURCHASE':'شراء جديد','#RECYCLE':'إعادة تدوير','#LOSS':'فاقد','#EXT':'خارج السجل','#ADJ':'تصحيح رصد','#OPEN':'رصيد افتتاحي'};
+const VIRT={'#PURCHASE':'شراء جديد','#RECYCLE':'إعادة تدوير','#LOSS':'فاقد','#EXT':'خارج السجل',
+  '#ADJ':'تصحيح رصد','#OPEN':'رصيد افتتاحي','#SUPPLY':'مصدر الاستبدال'};
 const isVirt=k=>typeof k==='string'&&k[0]==='#';
 const CONDAR={intact:'سليم',damaged:'تالف'};
 const BOXOP={issue_farm:'صرف سليم لمزرعة',scrap_out:'تالف لإعادة التدوير',return_in:'وارد راجع',
-  factory_replace:'بديل من مورّد البكش',purchase_in:'شراء جديد',sale_move:'بكش بيع سمك',
+  factory_replace:'استبدال بكش',purchase_in:'شراء جديد',sale_move:'بكش بيع سمك',
   empty_back:'فارغة من مبيع لمزرعة',farm_swap:'تحويل بين مزرعتين',audit:'جرد وتسوية',
   fix_d2i:'تصحيح: تالف ← سليم',fix_i2d:'تصحيح: سليم ← تالف',out_noone:'خروج بدون متلقي',in_nosource:'دخول بدون مصدر',
   opening_box:'رصيد بكش افتتاحي'};
@@ -563,7 +584,7 @@ const BOXF={
   issue_farm:[['toId','المزرعة','ent','farm'],['count','عدد الصناديق','num'],['driverId','السائق','ent','driver',1]],
   scrap_out:[['count','عدد التالف','num']],
   return_in:[['fromId','الجهة المُرجِعة','ent','farmerchant'],['cond','الحالة','cond'],['count','العدد','num'],['driverId','السائق','ent','driver',1]],
-  factory_replace:[['supId','مورّد البكش','ent','boxsup'],['damagedOut','تالف خارج','num'],['intactIn','سليم وارد','num'],['cost','رسوم البديل','num',null,1]],
+  factory_replace:[['damagedOut','تالف خارج للاستبدال','num'],['intactIn','سليم وارد بديلاً','num'],['cost','التكلفة','num',null,1]],
   purchase_in:[['count','العدد','num'],['cost','التكلفة','num',null,1]],
   sale_move:[['farmId','من مزرعة','ent','farm'],['merchantId','إلى مبيع','ent','merchant'],['count','العدد','num'],['driverId','السائق','ent','driver',1]],
   empty_back:[['merchantId','من مبيع','ent','merchant'],['farmId','إلى مزرعة','ent','farm'],['count','العدد','num'],['driverId','السائق','ent','driver',1]],
@@ -580,7 +601,7 @@ function buildLegs(op,p){
     issue_farm:()=>[[WH,v('toId'),'intact',n('count')]],
     scrap_out:()=>[[WH,'#RECYCLE','damaged',n('count')]],
     return_in:()=>[[v('fromId'),WH,v('cond')||'intact',n('count')]],
-    factory_replace:()=>[[WH,v('supId'),'damaged',n('damagedOut')],[v('supId'),WH,'intact',n('intactIn')]],
+    factory_replace:()=>[[WH,'#SUPPLY','damaged',n('damagedOut')],['#SUPPLY',WH,'intact',n('intactIn')]],
     purchase_in:()=>[['#PURCHASE',WH,'intact',n('count')]],
     sale_move:()=>[[v('farmId'),v('merchantId'),'intact',n('count')]],
     empty_back:()=>[[v('merchantId'),v('farmId'),'intact',n('count')]],
@@ -604,7 +625,8 @@ function legsOf(e){
 
 /* ============ الحالة ============ */
 const S={tab:"home",
-  sub:{fin:"invoice",ops:"box",box:"out",drv:"trips",ice:"op",rep:"box",repbox:"daily",set:"farm"},
+  sub:{fin:"invoice",ops:"box",box:"out",boxop:"issue_farm",drv:"trips",ice:"op",
+    rep:"box",repbox:"daily",set:"farm",acct:"driver"},
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,
@@ -616,7 +638,12 @@ function derive(entities,ledger){
   ledger.forEach(e=>{if(e.voidOf)dead.add(e.voidOf);if(e.replaces)dead.add(e.replaces)});
   const live=ledger.filter(e=>e.type!=='void'&&!dead.has(e.id));
   const T=t=>live.filter(e=>e.type===t);
-  const invoices=T('invoice'),collections=T('collection'),settlements=T('settlement');
+  /* الفاتورة بلا مبلغ = مسوّدة: تُحفظ لئلا تُنسى، وتنقل البكش فعلاً،
+     لكنها لا تدخل أي حساب مالي حتى يُكتب مبلغها. */
+  const allInv=T('invoice');
+  const drafts=allInv.filter(i=>!(+i.amount>0));
+  const invoices=allInv.filter(i=>+i.amount>0);
+  const collections=T('collection'),settlements=T('settlement');
   const voided=new Set(T('settlement_reversal').map(e=>e.refId));
   const actSet=settlements.filter(s=>!voided.has(s.id));
   const covered=new Set();actSet.forEach(s=>(s.coveredIds||[]).forEach(i=>covered.add(i)));
@@ -656,8 +683,7 @@ function derive(entities,ledger){
     const value=sumM(o,x=>(+x.qty||0)*(+x.unitPrice||0));
     return{...f,blocks:sum(o,x=>x.qty),value,paid:sumM(p,x=>x.amount),opening:openOf(f.id),
       balance:msum(openOf(f.id),value,-sumM(p,x=>x.amount))}});
-  const boxsups=list('boxsup').map(x=>({...x,opening:openOf(x.id),
-    repCost:sumM(boxE.filter(b=>b.op==='factory_replace'&&b.params?.supId===x.id),b=>b.cost)}));
+  const repCost=sumM(boxE.filter(b=>b.op==='factory_replace'),b=>b.cost);
 
   /* دفتر البكش */
   const bal={},loss={};const tc=k=>bal[k]=bal[k]||{intact:0,damaged:0};
@@ -667,21 +693,19 @@ function derive(entities,ledger){
     if(l.from==='#LOSS')loss[l.to]=(loss[l.to]||0)-c}));
   const boxOf=id=>{const b=bal[id]||{intact:0,damaged:0};return{intact:b.intact,damaged:b.damaged,total:b.intact+b.damaged,loss:loss[id]||0}};
   const mBox=merchants.map(m=>({...m,box:boxOf(m.id)})),fBox=farms.map(f=>({...f,box:boxOf(f.id)}));
-  const sBox=boxsups.map(x=>({...x,box:boxOf(x.id)}));
   const wh=boxOf(WH);
-  const custody={merchants:sum(mBox,m=>m.box.total),farms:sum(fBox,f=>f.box.total),
-    sups:sum(sBox,x=>x.box.total)};
-  custody.all=wh.total+custody.merchants+custody.farms+custody.sups;
+  const custody={merchants:sum(mBox,m=>m.box.total),farms:sum(fBox,f=>f.box.total)};
+  custody.all=wh.total+custody.merchants+custody.farms;
 
   const linked=new Set(boxE.filter(e=>e.op==='sale_move'&&e.invoiceId).map(e=>e.invoiceId));
   const t=todayISO();
   return{live,dead,invoices,collections,settlements,actSet,voided,covered,
-    merchants,farms,drivers,factories,boxsups,mBox,fBox,sBox,boxOf,wh,custody,nameOf,phoneOf,ent,
+    merchants,farms,drivers,factories,mBox,fBox,boxOf,wh,custody,repCost,nameOf,phoneOf,ent,
     trips,adv,dpay,iceOps,fpay,boxE,
-    openOf,opens,
+    openOf,opens,drafts,allInv,
     unlinked:invoices.filter(i=>(+i.boxes||0)>0&&!linked.has(i.id)),
     routes:list('route'),activeFarms:farms.filter(f=>f.cycleCount>0),
-    locOptions:[{id:WH,name:'المخزن'},...farms,...merchants,...boxsups],
+    locOptions:[{id:WH,name:'المخزن'},...farms,...merchants],
     kpi:{merchantDebt:sumM(merchants,m=>Math.max(m.balance,0)),merchantCredit:sumM(merchants,m=>Math.min(m.balance,0)),
       farmDue:sumM(farms,f=>f.balance),driverDue:sumM(drivers,d=>Math.max(d.balance,0)),
       iceDue:sumM(factories,f=>Math.max(f.balance,0)),iceBlocks:sum(factories,f=>f.blocks),
@@ -711,11 +735,15 @@ async function requireOwner(reason){
 
 /* ============ منطق التصفية ============ */
 const round50=v=>Math.round((+v||0)/50)*50;
+/* نسبة المكتب كسر: بسط على مقام — ٤/٩٦ أو ٥/٧٠.
+   العمولة = الإجمالي × (البسط ÷ المقام).
+   ٤/٩٦ = ٤٫١٦٧٪ · ٥/٧٠ = ٧٫١٤٣٪. لا علاقة للمجموع بـ١٠٠. */
+const ratioPct=(a,b)=>{const d=+b||0;return d>0?(+a||0)/d*100:0};
 function calcSettlement(f){
-  const total=+f.total||0,office=+f.office||0;
-  const commission=f.commissionTouched?(+f.commission||0):round50(total*office/100);
+  const total=+f.total||0,office=+f.office||0,farmR=+f.farmRatio||0;
+  const commission=f.commissionTouched?(+f.commission||0):round50(total*ratioPct(office,farmR)/100);
   const expenses=+f.expenses||0,prevDebt=+f.prevDebt||0,net=msum(total,-commission,-expenses);
-  return{total,office,farmRatio:+f.farmRatio||0,commission,expenses,prevDebt,net,payable:msum(net,-prevDebt)}}
+  return{total,office,farmRatio:farmR,pct:ratioPct(office,farmR),commission,expenses,prevDebt,net,payable:msum(net,-prevDebt)}}
 
 /* ============ الرسم ============ */
 function render(){
@@ -779,6 +807,10 @@ function vHome(){
     <div class="lbl">📲 ثبّت التطبيق على الجهاز</div>
     <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
     <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
+  ${D.drafts.length?`<button class="tile debt" data-act="goDrafts" style="margin-bottom:14px">
+    <div class="lbl">🧾 فواتير بانتظار المبلغ</div>
+    <div class="val sm" style="color:var(--debt)">${D.drafts.length}</div>
+    <div class="sub">اتحفظت بلا مبلغ — اضغط لتكملتها قبل التصفية</div></button>`:''}
   ${(()=>{const a=bkAge();return a.since>=25?`<button class="tile debt" data-act="exportJSON" style="margin-bottom:14px">
     <div class="lbl">⚠️ نسخة احتياطية مطلوبة</div>
     <div class="val sm" style="color:var(--debt)">${a.since} حركة بلا نسخة</div>
@@ -800,7 +832,7 @@ function vHome(){
   <button class="tile" data-act="none">
     <div class="lbl">إجمالي العهدة</div>
     <div class="val num">${D.custody.all}</div>
-    <div class="sub">مخزن ${D.wh.total} · مبايع ${D.custody.merchants} · مزارع ${D.custody.farms}${D.custody.sups?` · موردين ${D.custody.sups}`:''}</div>
+    <div class="sub">مخزن ${D.wh.total} · مبايع ${D.custody.merchants} · مزارع ${D.custody.farms}</div>
     <div class="bar">
       <i style="width:${pct(D.wh.total,D.custody.all)}%;background:var(--sea)"></i>
       <i style="width:${pct(D.custody.merchants,D.custody.all)}%;background:var(--brass)"></i>
@@ -863,8 +895,10 @@ function custodyList(arr){
 
 /* ---------- ٢) الحسابات ---------- */
 function vFin(){
-  return seg('fin',[["invoice","فاتورة بيع"],["collect","تحصيل"],["settle","تصفية مزرعة"],["archive","الأرشيف"]],S.sub.fin)
-    +({invoice:fInvoice,collect:fCollect,settle:fSettle,archive:vArchive})[S.sub.fin]();
+  const nd=S.D.drafts.length;
+  return seg('fin',[["invoice","فاتورة بيع"],["collect","تحصيل"],
+    ["draft","مسوّدات"+(nd?` (${nd})`:'')],["settle","تصفية مزرعة"],["archive","الأرشيف"]],S.sub.fin)
+    +({invoice:fInvoice,collect:fCollect,draft:vDrafts,settle:fSettle,archive:vArchive})[S.sub.fin]();
 }
 function fInvoice(){
   const D=S.D;
@@ -876,10 +910,27 @@ function fInvoice(){
     <div class="field"><label>المبيع</label><select name="merchantId" required>${opt(D.merchants,"","اختر المبيع")}</select></div>
     <div class="row"><div class="field"><label>عدد الصناديق <span class="hint">للمراجعة</span></label>
       <input type="number" name="boxes" min="0" step="1" inputmode="numeric" required></div>
-      <div class="field"><label>الإجمالي (ج.م)</label><input type="text" name="amount" inputmode="decimal" required></div></div>
+      <div class="field"><label>الإجمالي (ج.م) <span class="hint">اتركه فاضياً كمسوّدة</span></label>
+        <input type="text" name="amount" inputmode="decimal" placeholder="—"></div></div>
     <div class="field"><label>ملاحظة</label><input name="note" placeholder="نوع السمك…"></div>
     <button class="btn" type="submit">تسجيل الفاتورة</button></form></div>
   ${logList(['invoice'],"آخر الفواتير")}`;
+}
+/* المسوّدات: فواتير اتسجّلت بلا مبلغ لئلا تُنسى — البكش اتنقل، والمال معلّق */
+function vDrafts(){
+  const D=S.D,l=[...D.drafts].sort((a,b)=>b.seq-a.seq);
+  if(!l.length)return `<div class="empty"><b>لا توجد مسوّدات</b>
+    الفاتورة اللي تتحفظ بلا مبلغ بتظهر هنا لحد ما تكتب مبلغها.</div>`;
+  return `<div class="eyebrow debt">فواتير بانتظار المبلغ (${l.length})</div>
+  <p class="note" style="margin:0 0 12px">البكش اتنقل فعلاً، لكن المبلغ لسه مش داخل حسابات المبيع ولا المزرعة.</p>`
+  +l.map(e=>`<div class="rec open">
+    <button class="rechead"><span class="rt">${esc(D.nameOf(e.merchantId))}</span>
+      <span class="tag void">بلا مبلغ</span>
+      <span class="rm">${esc(D.nameOf(e.farmId))} · ${e.boxes} ص</span>
+      <span class="rd num">${arDate(e.date).slice(0,5)}</span></button>
+    <div class="recbody"><div class="acts">
+      <button class="btn sm" data-act="editOp" data-id="${e.id}">اكتب المبلغ</button>
+      <button class="btn danger sm" data-act="delOp" data-id="${e.id}">حذف</button></div></div></div>`).join('');
 }
 function fCollect(){
   const D=S.D;
@@ -906,8 +957,13 @@ function fSettle(){
     <div class="field"><label>تاريخ التصفية</label><input type="date" name="date" value="${f.date||todayISO()}" required></div>
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
-    <div class="row"><div class="field"><label>نسبة المكتب %</label><input type="number" name="office" data-role="office" step="0.01" inputmode="decimal" value="${f.office??4}"></div>
-      <div class="field"><label>نسبة المزرعة %</label><input type="number" name="farmRatio" data-role="farmRatio" step="0.01" inputmode="decimal" value="${f.farmRatio??96}"></div></div>
+    <div class="field"><label>نسبة المكتب <span class="hint">بسط على مقام — ٤ / ٩٦ أو ٥ / ٧٠</span></label>
+      <div class="ratio">
+        <input type="text" name="office" data-role="office" inputmode="decimal" value="${f.office??4}" aria-label="البسط">
+        <span>/</span>
+        <input type="text" name="farmRatio" data-role="farmRatio" inputmode="decimal" value="${f.farmRatio??96}" aria-label="المقام">
+      </div>
+      <p data-role="pct" class="note" style="margin-top:8px"></p></div>
     <div class="field"><label>العمولة المخصومة <span class="hint">تقريب لأقرب ٥٠ · قابلة للتعديل</span></label>
       <input type="number" name="commission" data-role="commission" step="0.01" inputmode="decimal" value="${f.commission||0}"></div>
     <div class="field"><label>مصاريف تشغيل</label><input type="number" name="expenses" data-role="expenses" step="0.01" inputmode="decimal" value="${f.expenses||0}"></div>
@@ -924,7 +980,7 @@ function tapeHTML(r){
   const L=(k,v,c="")=>`<div class="tline ${c}"><span class="k">${k}</span><span class="dots"></span><span class="v num">${v}</span></div>`;
   return `<div class="tape"><h3>إيصال تصفية</h3>
   <div class="who">${esc(r.farmName)} · ${arDate(r.date)} · ${r.count} فاتورة / ${r.boxes} صندوق</div>
-  ${L("إجمالي المبيعات",money(r.total))}${L("عمولة المكتب "+r.office+"%","− "+money(r.commission),"minus")}
+  ${L("إجمالي المبيعات",money(r.total))}${L(`عمولة المكتب ${r.office}/${r.farmRatio}`,"− "+money(r.commission),"minus")}
   ${L("مصاريف تشغيل","− "+money(r.expenses),"minus")}${L("صافي المزرعة",money(r.net),"rule")}
   ${L("دين سابق","− "+money(r.prevDebt),"minus")}
   ${L(r.payable>=0?"المستحق للمزرعة":"مستحق على المزرعة",money(Math.abs(r.payable)),"total")}</div>`;
@@ -935,7 +991,7 @@ function vArchive(){
   return `<div class="eyebrow brass">دورات مصفّاة</div>`+l.map(s=>{const dead=D.voided.has(s.id);
     return `<div class="rec ${dead?'void':''}"><div class="top"><b>${esc(D.nameOf(s.farmId))}</b>
       <span class="tag ${dead?'void':'brass'}">${dead?'ملغاة':'مؤرشفة'}</span><span class="date">${arDate(s.date)}</span></div>
-      <div class="meta">إجمالي <b class="num">${money(s.total)}</b> · عمولة <span class="num">${money(s.commission)}</span> (${s.office}%) · مصاريف <span class="num">${money(s.expenses)}</span></div>
+      <div class="meta">إجمالي <b class="num">${money(s.total)}</b> · عمولة <span class="num">${money(s.commission)}</span> (${s.office}/${s.farmRatio}) · مصاريف <span class="num">${money(s.expenses)}</span></div>
       <div class="meta" style="color:var(--ink)">المستحق: <b class="num">${money(s.payable)}</b> ج.م · ${s.coveredIds.length} فاتورة</div>
       <div class="acts"><button class="btn ghost sm" data-act="tapeAgain" data-id="${s.id}">الإيصال</button>
       ${dead?'':`<button class="btn danger sm" data-act="undoSettle" data-id="${s.id}">تراجع</button>`}</div></div>`}).join('');
@@ -947,16 +1003,68 @@ function vOps(){
   return s+({box:opsBox,drv:opsDrv,ice:opsIce})[S.sub.ops]();
 }
 /* --- بكش --- */
+/* كل عملية بكش في تبويب مستقل — الشاشة الواحدة كانت تحمل ستة نماذج فوق بعض */
+const BOXGROUP={
+  out:[['issue_farm','صرف لمزرعة'],['scrap_out','تالف للتدوير']],
+  in:[['return_in','وارد راجع'],['factory_replace','استبدال'],['purchase_in','شراء جديد']],
+  move:[['sale_move','بيع سمك'],['empty_back','فارغة لمزرعة'],['farm_swap','بين مزرعتين']],
+  adj:[['audit','جرد'],['fix_d2i','تالف ← سليم'],['fix_i2d','سليم ← تالف'],
+       ['out_noone','خروج بلا متلقي'],['in_nosource','دخول بلا مصدر'],['opening_box','رصيد افتتاحي']]
+};
+const BOXHINT={
+  issue_farm:'يخرج من رصيد المخزن السليم ويُقيَّد على المزرعة كعُهدة مرتجعة.',
+  scrap_out:'خروج نهائي بلا انتظار عودة — لا يُقيَّد على أحد.',
+  return_in:'لتسجيل سليم وتالف في نفس اليوم، سجّل حركتين.',
+  factory_replace:'تالف يخرج وسليم يدخل بدلاً منه من مصدر الاستبدال.',
+  purchase_in:'يزيد رصيد المخزن السليم.',
+  sale_move:'تنقل العُهدة من المزرعة إلى المبيع. المخزن لا يدخل هذه الحركة.',
+  empty_back:'رجوع البكش الفارغة من المبيع إلى مزرعة.',
+  farm_swap:'نقل عُهدة بين مزرعتين مباشرة.',
+  fix_d2i:'تصحيح خطأ رصد فقط — الإجمالي لا يتغيّر.',
+  fix_i2d:'تصحيح خطأ رصد فقط — الإجمالي لا يتغيّر.',
+  out_noone:'ضياع أو سرقة — يُقيَّد فاقداً على الموقع.',
+  in_nosource:'بكش مجهول المصدر دخل الموقع.',
+  opening_box:'نقطة البداية قبل تشغيل التطبيق — للمخزن أو أي جهة.'
+};
 function opsBox(){
   const D=S.D;
   if(!D.farms.length&&!D.merchants.length)return `<div class="empty"><b>لا توجد جهات</b>أضف مزرعة أو مبيعاً من «الإعدادات».</div>`;
-  return seg('box',[["out","صادر"],["in","وارد"],["move","تحويلات"],["adj","جرد وتسويات"],["bal","الأرصدة"]],S.sub.box,true)
+  const g=S.sub.box;
+  const head=seg('box',[["out","صادر"],["in","وارد"],["move","تحويلات"],["adj","جرد وتسويات"],["bal","الأرصدة"]],g,true);
+  if(g==='bal')return head+`<div style="height:14px"></div>`+bxBal();
+  const ops=BOXGROUP[g]||[];
+  if(!ops.some(o=>o[0]===S.sub.boxop))S.sub.boxop=ops[0][0];
+  const op=S.sub.boxop;
+  return head+`<div style="height:10px"></div>`+seg('boxop',ops,op,true)
     +`<p class="note" style="margin:12px 0">🔒 حركات البكش لا تمسّ مديونية مبيع ولا مستحق مزرعة.</p>`
-    +({out:bxOut,in:bxIn,move:bxMove,adj:bxAdj,bal:bxBal})[S.sub.box]();
+    +(op==='audit'?auditForm():boxForm(op,'تسجيل الحركة',op==='sale_move'?invPicker():''))
+    +boxLog([op],5);
 }
-function boxForm(op,title,btn,extra=""){
+function invPicker(){
+  const D=S.D,p=D.unlinked.slice(-15).reverse();
+  if(!p.length)return '';
+  return `<div class="field"><label>ربط بفاتورة <span class="hint">${p.length} فاتورة بلا حركة بكش</span></label>
+    <select name="invoiceId" data-role="invPick"><option value="">بدون ربط</option>${p.map(i=>
+    `<option value="${i.id}" data-farm="${i.farmId}" data-merchant="${i.merchantId}" data-boxes="${i.boxes}">${arDate(i.date)} · ${esc(D.nameOf(i.farmId))} ← ${esc(D.nameOf(i.merchantId))} · ${i.boxes} ص</option>`).join('')}</select></div>`;
+}
+function auditForm(){
+  const D=S.D;
+  return `<div class="card"><form data-form="audit">
+    <p class="note" style="margin:0 0 14px">${BOXHINT.audit||'الفرق بين المعدود والدفتري يُقيَّد آلياً.'}</p>
+    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    <div class="field"><label>الجهة المجرودة <span class="hint">اختر «المخزن» لجرد المخزن</span></label>
+      <select name="locId" required>${opt(D.locOptions,"","اختر الجهة أو المخزن")}</select></div>
+    <div class="row"><div class="field"><label>المعدود سليم</label><input type="number" name="cIntact" min="0" step="1" inputmode="numeric" value="0"></div>
+      <div class="field"><label>المعدود تالف</label><input type="number" name="cDamaged" min="0" step="1" inputmode="numeric" value="0"></div></div>
+    <div data-role="adiff"></div>
+    <div class="field"><label>ملاحظة</label><input name="note" placeholder="من حضر الجرد…"></div>
+    <button class="btn" type="submit">اعتماد الجرد وتسوية الفرق</button>
+    <p class="note">العجز يخرج للفاقد على الجهة، والزيادة تدخل كـ«بلا مصدر».</p></form></div>`;
+}
+function boxForm(op,btn,extra=""){
   const f=BOXF[op]||[];
-  return `<div class="eyebrow">${title}</div><div class="card"><form data-form="box" data-op="${op}">
+  return `<div class="card"><form data-form="box" data-op="${op}">
+    ${BOXHINT[op]?`<p class="note" style="margin:0 0 14px">${BOXHINT[op]}</p>`:''}
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     ${f.map(([k,l,t,e,o])=>fieldHTML(k,l,t,e,o)).join('')}${extra}
     <div class="field"><label>ملاحظة</label><input name="note"></div>
@@ -972,55 +1080,17 @@ function fieldHTML(k,l,t,e,optional,val=""){
   if(t==='date')return `<div class="field"><label>${l}</label><input type="date" name="${k}" value="${val||todayISO()}" required></div>`;
   if(t==='ent'){
     const src={farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
-      boxsup:D.boxsups,loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]}[e]||[];
+      loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]}[e]||[];
     return `<div class="field"><label>${l}${optional?' <span class="hint">اختياري</span>':''}</label>
       <select name="${k}" ${optional?'':'required'} data-ent="${e}">${opt(src,val,optional?'بدون':'اختر…')}</select></div>`;
   }
   return '';
 }
-function bxOut(){return boxForm('issue_farm','١ · صرف بكش سليم لمزرعة','صرف من المخزن')
-  +boxForm('scrap_out','٢ · نقل تالف لإعادة التدوير','إخراج التالف نهائياً')
-  +boxLog(['issue_farm','scrap_out'])}
-function bxIn(){return boxForm('return_in','١ · وارد من مبيع أو مزرعة','تسجيل الوارد')
-  +(S.D.boxsups.length?boxForm('factory_replace','٢ · بديل من مورّد البكش','تسجيل البديل'):
-    `<div class="eyebrow">٢ · بديل من مورّد البكش</div><div class="empty">أضف «مورّد بكش» من الإعدادات — مصنع الثلج لا يتعامل مع البكش.</div>`)
-  +boxForm('purchase_in','٣ · شراء بكش جديد','إدخال الشراء')
-  +boxLog(['return_in','factory_replace','purchase_in'])}
-function bxMove(){
-  const D=S.D,p=D.unlinked.slice(-15).reverse();
-  const pick=p.length?`<div class="field"><label>ربط بفاتورة <span class="hint">${p.length} فاتورة بلا حركة بكش</span></label>
-    <select name="invoiceId" data-role="invPick"><option value="">بدون ربط</option>${p.map(i=>
-    `<option value="${i.id}" data-farm="${i.farmId}" data-merchant="${i.merchantId}" data-boxes="${i.boxes}">${arDate(i.date)} · ${esc(D.nameOf(i.farmId))} ← ${esc(D.nameOf(i.merchantId))} · ${i.boxes} ص</option>`).join('')}</select></div>`:'';
-  return boxForm('sale_move','١ · بكش بيع سمك — مزرعة ← مبيع','تسجيل حركة البيع',pick)
-    +boxForm('empty_back','٢ · تحويل بكش فارغة — مبيع ← مزرعة','تسجيل التحويل')
-    +boxForm('farm_swap','٣ · تحويل بين مزرعتين','تسجيل التحويل')
-    +boxLog(['sale_move','empty_back','farm_swap']);
-}
-function bxAdj(){
-  const D=S.D;
-  return `<div class="eyebrow debt">١ · جرد جهة أو مخزن <span class="free">— الفرق يُقيَّد فاقداً آلياً</span></div>
-  <div class="card"><form data-form="audit">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>الجهة المجرودة <span class="hint">اختر «المخزن» لجرد المخزن</span></label>
-      <select name="locId" required>${opt(D.locOptions,"","اختر الجهة أو المخزن")}</select></div>
-    <div class="row"><div class="field"><label>المعدود سليم</label><input type="number" name="cIntact" min="0" step="1" inputmode="numeric" value="0"></div>
-      <div class="field"><label>المعدود تالف</label><input type="number" name="cDamaged" min="0" step="1" inputmode="numeric" value="0"></div></div>
-    <div data-role="adiff"></div>
-    <div class="field"><label>ملاحظة</label><input name="note" placeholder="من حضر الجرد…"></div>
-    <button class="btn" type="submit">اعتماد الجرد وتسوية الفرق</button>
-    <p class="note">العجز يخرج للفاقد على الجهة، والزيادة تدخل كـ«بلا مصدر». الرصيد لا يُعدَّل يدوياً — يُسوّى بحركة مؤرَّخة.</p></form></div>
-  ${boxForm('fix_d2i','٢ · تصحيح رصد: تالف ← سليم','تسجيل التصحيح')}
-  ${boxForm('fix_i2d','٣ · تصحيح رصد: سليم ← تالف','تسجيل التصحيح')}
-  ${boxForm('out_noone','٤ · خروج بكش بدون متلقي','تسجيل الخروج')}
-  ${boxForm('in_nosource','٥ · دخول بكش من غير مصدر','تسجيل الدخول')}
-  ${boxForm('opening_box','٦ · رصيد بكش افتتاحي','تسجيل الرصيد الافتتاحي')}
-  ${boxLog(['audit','fix_d2i','fix_i2d','out_noone','in_nosource'])}`;
-}
 function bxBal(){
   const D=S.D,w=D.wh;
-  const rows=[...D.mBox,...D.fBox,...D.sBox]
+  const rows=[...D.mBox,...D.fBox]
     .filter(h=>h.box.total||h.box.loss).sort((a,b)=>b.box.total-a.box.total).map(h=>
-    `<tr><td class="tname">${esc(h.name)}</td><td><span class="tag">${({farm:'مزرعة',merchant:'مبيع',boxsup:'مورّد'})[h.type]}</span></td>
+    `<tr><td class="tname">${esc(h.name)}</td><td><span class="tag">${({farm:'مزرعة',merchant:'مبيع'})[h.type]}</span></td>
      <td class="n">${h.box.intact}</td><td class="n" style="color:var(--debt)">${h.box.damaged}</td>
      <td class="n" style="font-weight:700;color:${h.box.total<0?'var(--paid)':'inherit'}">${h.box.total}</td>
      <td class="n" style="color:var(--debt)">${h.box.loss||''}</td></tr>`).join('');
@@ -1040,7 +1110,10 @@ function boxLog(ops,limit=6){
   const items=S.ledger.filter(e=>(e.type==='box'||e.type.startsWith('box_'))&&(!ops||ops.includes(e.op)))
     .sort((a,b)=>b.seq-a.seq).slice(0,limit);
   if(!items.length)return '';
-  return `<div class="eyebrow">آخر الحركات</div>`+items.map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),legsTxt(e))).join('');
+  return `<div class="eyebrow">آخر الحركات</div>`+items.map(e=>recHTML(e,
+    (BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
+    legsOf(e).map(l=>`${S.D.nameOf(l.from)} ← ${S.D.nameOf(l.to)}`).join(' · '),
+    sum(legsOf(e),l=>l.count)+' ص')).join('');
 }
 /* --- سائقين --- */
 function opsDrv(){
@@ -1197,7 +1270,8 @@ function repAcct(){
     runP+=P(dr)-P(cr);const run=runP/100;
     return `<tr><td class="n">${arDate(e.date)}</td><td>${({invoice:'فاتورة',collection:'تحصيل',settlement:'تصفية',opening_cash:'رصيد افتتاحي'})[e.type]}</td>
       <td>${esc(e.type==='invoice'?(isM?D.nameOf(e.farmId):D.nameOf(e.merchantId)):(e.note||'—'))}</td>
-      <td class="n">${dr?money(dr):''}</td><td class="n">${cr?money(cr):''}</td><td class="n" style="font-weight:700">${money(run)}</td></tr>`}).join('');
+      <td class="n cout">${dr?money(dr):''}</td><td class="n cin">${cr?money(cr):''}</td>
+      <td class="n" style="font-weight:600">${money(run)}</td></tr>`}).join('');
   const head=`<table><thead><tr><th>التاريخ</th><th>البيان</th><th>التفصيل</th>
     <th class="n">مدين</th><th class="n">دائن</th><th class="n">الرصيد</th></tr></thead><tbody>${rows}</tbody>
     <tfoot><tr><td colspan="3">الإجمالي</td>
@@ -1234,14 +1308,15 @@ function repBox(){
     let ci=oI,cd=oD;
     const rows=Object.keys(days).sort().map(dt=>{const x=days[dt];
       const bi=ci,bd=cd;ci+=x.iIn-x.iOut;cd+=x.dIn-x.dOut;
-      return `<tr><td class="n">${arDate(dt)}</td><td class="n">${bi}/${bd}</td><td class="n" style="color:var(--paid)">${x.iIn+x.dIn}</td>
-        <td class="n" style="color:var(--debt)">${x.iOut+x.dOut}</td><td class="n" style="font-weight:700">${ci}/${cd}</td></tr>`}).join('');
+      return `<tr><td class="n">${arDate(dt)}</td><td class="n">${bi}/${bd}</td>
+        <td class="n cin">${x.iIn+x.dIn||''}</td><td class="n cout">${x.iOut+x.dOut||''}</td>
+        <td class="n" style="font-weight:600">${ci}/${cd}</td></tr>`}).join('');
     const tin=Object.values(days).reduce((t,x)=>t+x.iIn+x.dIn,0);
     const tout=Object.values(days).reduce((t,x)=>t+x.iOut+x.dOut,0);
     const tbl=`<table><thead><tr><th>اليوم</th><th class="n">افتتاحي سليم/تالف</th>
       <th class="n">وارد</th><th class="n">صادر</th><th class="n">ختامي سليم/تالف</th></tr></thead>
       <tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td class="n">${oI}/${oD}</td>
-      <td class="n money-neg">${tin}</td><td class="n money-pos">${tout}</td>
+      <td class="n cin">${tin}</td><td class="n cout">${tout}</td>
       <td class="n">${ci}/${cd}</td></tr></tfoot></table>`;
     S.print={title:`تقرير البكش اليومي — ${D.nameOf(loc)}`,html:tbl};
     return t+`<div class="eyebrow">تقرير يومي — ${esc(D.nameOf(loc))}</div>
@@ -1279,12 +1354,24 @@ function repBox(){
       <p class="note">يُحسب من حركات البكش المسجَّل عليها سائق.</p></div>`;
   }
   const l=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent))).sort((a,b)=>b.seq-a.seq);
-  const rows=l.map(e=>`<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td><td>${esc(legsTxt(e))}</td><td>${esc(e.note||'')}</td></tr>`).join('');
-  S.print={title:"سجل حركات البكش",html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th><th>ملاحظة</th></tr></thead>
-    <tbody>${rows}</tbody><tfoot><tr><td colspan="4">إجمالي الحركات: ${l.length}</td></tr></tfoot></table>`};
+  /* الوارد والصادر محسوبان بالنسبة لموقع مرجعي (الجهة المختارة أو المخزن) */
+  const ref=F.ent||WH;
+  const io=e=>{let i=0,o=0;legsOf(e).forEach(x=>{if(x.to===ref)i+=x.count;if(x.from===ref)o+=x.count});return[i,o]};
+  let TI=0,TO=0;
+  const rows=l.map(e=>{const[i,o]=io(e);TI+=i;TO+=o;
+    return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td>
+      <td>${esc(legsTxt(e))}</td><td class="n cin">${i||''}</td><td class="n cout">${o||''}</td>
+      <td>${esc(e.note||'')}</td></tr>`}).join('');
+  S.print={title:`سجل حركات البكش — الوارد/الصادر بالنسبة لـ ${D.nameOf(ref)}`,
+    html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th>
+      <th class="n">وارد</th><th class="n">صادر</th><th>ملاحظة</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr><td colspan="3">الإجمالي (${l.length} حركة)</td>
+      <td class="n">${TI}</td><td class="n">${TO}</td><td></td></tr></tfoot></table>`};
   const N=30,show=Math.min(l.length,N*((S.page||0)+1));
   return t+`<div class="eyebrow">كل الحركات (${l.length})</div>`
-    +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),legsTxt(e))).join('')
+    +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
+        legsOf(e).map(x=>`${D.nameOf(x.from)} ← ${D.nameOf(x.to)}`).join(' · '),
+        sum(legsOf(e),x=>x.count)+' ص')).join('')
       +(show<l.length?`<button class="more" data-act="more">عرض ${Math.min(N,l.length-show)} حركة أخرى · باقي ${l.length-show}</button>`:'')
       :'<div class="empty">لا حركات</div>');
 }
@@ -1298,11 +1385,16 @@ function repDrv(){
     run+=e.type==='trip'?v:-v;
     return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.driverId))}</td><td>${nm[e.type]}</td>
       <td>${esc(e.type==='trip'?(D.nameOf(e.routeId)||e.destination||'—'):(e.note||'—'))}</td>
-      <td class="n">${money(v)}</td>${F.ent?`<td class="n" style="font-weight:700">${money(run)}</td>`:''}</tr>`}).join('');
+      <td class="n cin">${e.type==='trip'?money(v):''}</td>
+      <td class="n cout">${e.type!=='trip'?money(v):''}</td>
+      ${F.ent?`<td class="n" style="font-weight:600">${money(run)}</td>`:''}</tr>`}).join('');
+  const tIn=sumM(items.filter(e=>e.type==='trip'),e=>e.fare??e.cost);
+  const tOut=sumM(items.filter(e=>e.type!=='trip'),e=>e.amount);
   const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th>
-    <th class="n">المبلغ</th>${F.ent?'<th class="n">الرصيد</th>':''}</tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="4">إجمالي الحركات (${items.length})</td>
-      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='trip'?P(e.fare||e.cost):P(e.amount)),0)/100)}</td>
+    <th class="n">مستحق له</th><th class="n">مدفوع/سلف</th>${F.ent?'<th class="n">الرصيد</th>':''}</tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="4">الإجمالي (${items.length} حركة)</td>
+      <td class="n">${money(tIn)}</td><td class="n">${money(tOut)}</td>
       ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
   const who=F.ent?D.drivers.find(d=>d.id===F.ent):null;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
@@ -1329,13 +1421,16 @@ function repIce(){
     const v=isP?(+e.amount||0):(+e.qty||0)*(+e.unitPrice||0);
     return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.factoryId))}</td>
       <td>${isP?'تصفية':'توريد'}</td><td class="n">${isP?'':e.qty}</td><td class="n">${isP?'':money(e.unitPrice)}</td>
-      <td>${esc(isP?(e.note||'—'):D.nameOf(e.farmId))}</td><td class="n">${money(v)}</td></tr>`}).join('');
+      <td>${esc(isP?(e.note||'—'):D.nameOf(e.farmId))}</td>
+      <td class="n cin">${isP?'':money(v)}</td><td class="n cout">${isP?money(v):''}</td></tr>`}).join('');
+  const iIn=sumM(items.filter(e=>e.type!=='factory_payment'),e=>(+e.qty||0)*(+e.unitPrice||0));
+  const iOut=sumM(items.filter(e=>e.type==='factory_payment'),e=>e.amount);
   const tbl=`<table><thead><tr><th>التاريخ</th><th>المصنع</th><th>النوع</th><th class="n">بلاطات</th>
-    <th class="n">السعر</th><th>الجهة</th><th class="n">القيمة</th></tr></thead><tbody>${rows}</tbody>
+    <th class="n">السعر</th><th>الجهة</th><th class="n">توريد</th><th class="n">مدفوع</th></tr></thead>
+    <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="3">الإجمالي (${items.length} حركة)</td>
       <td class="n">${sum(items.filter(e=>e.type!=='factory_payment'),e=>e.qty)}</td><td></td><td></td>
-      <td class="n">${money(items.reduce((t,e)=>t+(e.type==='factory_payment'?P(e.amount):P((+e.qty||0)*(+e.unitPrice||0))),0)/100)}</td>
-      </tr></tfoot></table>`;
+      <td class="n">${money(iIn)}</td><td class="n">${money(iOut)}</td></tr></tfoot></table>`;
   const who=F.ent?D.factories.find(f=>f.id===F.ent):null;
   S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
   const fs=D.factories.filter(f=>!F.ent||f.id===F.ent);
@@ -1358,15 +1453,14 @@ const ENTF={
   merchant:[['name','اسم المبيع','text'],['place','المكان','text'],['phone','رقم التواصل','tel']],
   driver:[['name','اسم السائق','text'],['phone','رقم التواصل','tel']],
   route:[['name','اسم الرحلة','text'],['fare','الأجرة الافتراضية','num']],
-  ice:[['name','اسم المصنع','text'],['place','المكان','text'],['price','سعر البلاطة','num'],['phone','رقم التواصل','tel']],
-  boxsup:[['name','اسم المورّد','text'],['place','المكان','text'],['phone','رقم التواصل','tel']]
+  ice:[['name','اسم المصنع','text'],['place','المكان','text'],['price','سعر البلاطة','num'],['phone','رقم التواصل','tel']]
 };
-const ENTAR={farm:'مزرعة',merchant:'مبيع',driver:'سائق',route:'رحلة',ice:'مصنع ثلج',boxsup:'مورّد بكش'};
+const ENTAR={farm:'مزرعة',merchant:'مبيع',driver:'سائق',route:'رحلة',ice:'مصنع ثلج'};
 /* حقول الرصيد الافتتاحي — تظهر عند الإضافة وفي ورقة «رصيد افتتاحي» للجهات القديمة */
 const OPENLBL={merchant:'رصيد نقدي افتتاحي عليه',farm:'رصيد نقدي افتتاحي لها',
-  driver:'رصيد نقدي افتتاحي له',ice:'رصيد نقدي افتتاحي له',boxsup:'رصيد نقدي افتتاحي له'};
+  driver:'رصيد نقدي افتتاحي له',ice:'رصيد نقدي افتتاحي له'};
 /* مصنع الثلج لا يتعامل مع البكش إطلاقاً — نقدية فقط */
-const OPENBOX={merchant:1,farm:1,boxsup:1};
+const OPENBOX={merchant:1,farm:1};
 function OPENF(t){
   if(t==='route')return '';
   return `<div class="eyebrow" style="margin-top:4px">أرصدة افتتاحية <span class="free">— اختياري</span></div>
@@ -1396,8 +1490,7 @@ function addOpen(id){
 }
 function vSet(){
   const D=S.D,t=S.sub.set;
-  const src={farm:D.farms,merchant:D.merchants,driver:D.drivers,route:D.routes,
-    ice:D.factories,boxsup:D.boxsups}[t];
+  const src={farm:D.farms,merchant:D.merchants,driver:D.drivers,route:D.routes,ice:D.factories}[t];
   const fields=ENTF[t];
   /* بيانات الشركة أولاً — أول ما يفتح المستخدم الإعدادات يضبط هويته قبل أي بيانات */
   const company=`<div class="eyebrow">بيانات الشركة <span class="free">— تظهر في كل التقارير</span></div>
@@ -1430,6 +1523,17 @@ function vSet(){
       <div class="note" style="margin:2px 0 0">مع كل فاتورة بيع تُنشأ حركة «بكش بيع سمك» من المزرعة إلى المبيع بنفس عدد الصناديق، وتتبع الفاتورة في التعديل والحذف.</div></div>
     <button class="btn sm ${S.autoBox?'':'ghost'}" data-act="toggleAuto">${S.autoBox?'مفعّل':'موقوف'}</button>
   </div>
+  <div class="eyebrow">رصيد المخزن الافتتاحي</div>
+  <div class="card"><form data-form="whopen">
+    <p class="note" style="margin:0 0 12px">نقطة بداية المخزن قبل تشغيل التطبيق. الرصيد الحالي:
+      <b class="num">${D.wh.intact}</b> سليم · <b class="num">${D.wh.damaged}</b> تالف.</p>
+    <div class="row">
+      <div class="field"><label>بكش سليم</label><input type="number" name="oIntact" min="0" step="1" inputmode="numeric" value="0"></div>
+      <div class="field"><label>بكش تالف</label><input type="number" name="oDamaged" min="0" step="1" inputmode="numeric" value="0"></div></div>
+    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}"></div>
+    <button class="btn ghost" type="submit">تسجيل رصيد المخزن</button>
+    <p class="note">يُسجَّل كحركة مؤرَّخة، وتقدر تكرّرها لو ظهر رصيد إضافي.</p></form></div>
+
   <div class="eyebrow">التثبيت</div>
   <div class="card" style="display:flex;align-items:center;gap:12px">
     <div style="flex:1"><b style="font-size:13.5px">${isStandalone()?'التطبيق مثبَّت ✓':'التطبيق يعمل في المتصفح'}</b>
@@ -1491,14 +1595,22 @@ function diagHTML(){
     <span>${esc(r.n)}</span><b>${r.ok?'✓':'✗'}</b></div>`).join('')}</div>`;
 }
 /* ---------- بطاقة حركة + أزرار تعديل/حذف ---------- */
-function recHTML(e,title,meta){
-  const dead=S.D.dead.has(e.id),rep=!!e.replaces;
-  return `<div class="rec ${dead?'void':''}"><div class="top"><b>${esc(title)}</b>
-    ${rep?'<span class="tag edit">معدَّلة</span>':''}${dead?'<span class="tag void">ملغاة</span>':''}
-    <span class="date">${arDate(e.date)}</span></div>
-    <div class="meta flow">${esc(meta||'')}</div>${e.note?`<div class="meta">${esc(e.note)}</div>`:''}
-    ${dead?'':`<div class="acts"><button class="btn ghost sm" data-act="editOp" data-id="${e.id}">تعديل</button>
-      <button class="btn danger sm" data-act="delOp" data-id="${e.id}">حذف</button></div>`}</div>`;
+/* بطاقة مضغوطة: العمليات قد تتجاوز ٥٠ في اليوم، فالسطر الواحد أسرع في المسح البصري.
+   التفاصيل وأزرار التعديل والحذف تظهر عند الضغط على السطر. */
+function recHTML(e,title,meta,val){
+  const dead=S.D.dead.has(e.id),rep=!!e.replaces,open=S.openRec===e.id;
+  return `<div class="rec ${dead?'void':''} ${open?'open':''}">
+    <button class="rechead" data-act="toggleRec" data-id="${e.id}">
+      <span class="rt">${esc(title)}</span>
+      ${rep?'<span class="tag edit">معدَّلة</span>':''}${dead?'<span class="tag void">ملغاة</span>':''}
+      <span class="rm">${esc(meta||'')}</span>
+      ${val?`<span class="rv num">${val}</span>`:''}
+      <span class="rd num">${arDate(e.date).slice(0,5)}</span></button>
+    ${open?`<div class="recbody"><div class="meta">${arDate(e.date)}${e.note?` · ${esc(e.note)}`:''}</div>
+      ${dead?'<div class="meta">حركة ملغاة — للمراجعة فقط</div>'
+      :`<div class="acts"><button class="btn ghost sm" data-act="editOp" data-id="${e.id}">تعديل</button>
+        <button class="btn danger sm" data-act="delOp" data-id="${e.id}">حذف</button></div>`}</div>`:''}
+  </div>`;
 }
 function logList(types,title,limit=6){
   const D=S.D;
@@ -1507,13 +1619,16 @@ function logList(types,title,limit=6){
   const T={invoice:'فاتورة',collection:'تحصيل',trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية سائق',
     factory_payment:'تصفية مصنع',ice_op:'ثلج',opening_cash:'رصيد افتتاحي'};
   const meta=e=>{
-    if(e.type==='invoice')return `${D.nameOf(e.merchantId)} ← ${D.nameOf(e.farmId)} · ${e.boxes} صندوق · ${money(e.amount)} ج.م`;
-    if(e.type==='collection')return `${D.nameOf(e.merchantId)} · ${money(e.amount)} ج.م`;
-    if(e.type==='opening_cash')return `${D.nameOf(e.entityId)} · ${money(e.amount)} ج.م`;
-    if(e.type==='trip')return `${D.nameOf(e.driverId)} · ${D.nameOf(e.routeId)||e.destination||''} · ${money(e.fare??e.cost)} ج.م`;
-    if(e.type==='ice_op')return `${D.nameOf(e.factoryId)} → ${D.nameOf(e.farmId)} · ${e.qty} بلاطة × ${money(e.unitPrice)} = ${money(e.qty*e.unitPrice)} ج.م`;
-    return `${D.nameOf(e.driverId||e.factoryId)} · ${money(e.amount)} ج.م`};
-  return `<div class="eyebrow">${title}</div>`+items.map(e=>recHTML(e,T[e.type]||e.type,meta(e))).join('');
+    if(e.type==='invoice')return `${D.nameOf(e.merchantId)} ← ${D.nameOf(e.farmId)} · ${e.boxes} ص`;
+    if(e.type==='collection')return D.nameOf(e.merchantId);
+    if(e.type==='opening_cash')return D.nameOf(e.entityId);
+    if(e.type==='trip')return `${D.nameOf(e.driverId)} · ${D.nameOf(e.routeId)||e.destination||''}`;
+    if(e.type==='ice_op')return `${D.nameOf(e.factoryId)} → ${D.nameOf(e.farmId)} · ${e.qty} بلاطة`;
+    return D.nameOf(e.driverId||e.factoryId)};
+  const val=e=>e.type==='trip'?money(e.fare??e.cost)
+    :e.type==='ice_op'?money((+e.qty||0)*(+e.unitPrice||0)):money(e.amount);
+  return `<div class="eyebrow">${title}</div>`
+    +items.map(e=>recHTML(e,T[e.type]||e.type,meta(e),val(e))).join('');
 }
 
 /* ============ الربط ============ */
@@ -1523,6 +1638,8 @@ function wire(root){
     S.sub[s.dataset.seg]=b.dataset.sub;
     if(s.dataset.seg==='fin')S.form.settle=null;
     if(s.dataset.seg==='rep'){S.F.ent="";S.page=0}
+    if(s.dataset.seg==='box')S.sub.boxop='';
+    if(s.dataset.seg==='box')S.sub.boxop='';
     render()}));
   $$('form[data-form]',root).forEach(f=>f.addEventListener('submit',onSubmit));
 
@@ -1562,10 +1679,12 @@ function onClick(ev){
   const go=(tab,sub)=>{S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
     case 'install':return doInstall();
+    case 'toggleRec':S.openRec=S.openRec===id?null:id;return render();
     case 'goHome':S.tab='home';S.toTop=true;return render();
     case 'more':S.page=(S.page||0)+1;return render();
     case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
     case 'goFarms':return go('fin',{fin:'settle'});
+    case 'goDrafts':return go('fin',{fin:'draft'});
     case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
     case 'repDriver':S.F.ent=id;return go('rep',{rep:'drv'});
     case 'repFactory':S.F.ent=id;return go('rep',{rep:'ice'});
@@ -1620,10 +1739,9 @@ function wireSettle(root){
   const f=$('form[data-form=settle]',root),g=r=>$('[data-role='+r+']',f);
   f.farmId.addEventListener('change',()=>{const x=S.D.farms.find(y=>y.id===f.farmId.value);
     g('total').value=x?Math.round(x.cycleTotal*100)/100:0;S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()});
-  g('office').addEventListener('input',()=>{const v=+g('office').value;if(isFinite(v))g('farmRatio').value=Math.round((100-v)*100)/100;
-    S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()});
-  g('farmRatio').addEventListener('input',()=>{const v=+g('farmRatio').value;if(isFinite(v))g('office').value=Math.round((100-v)*100)/100;
-    S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()});
+  /* لا إكمال آلي إلى ١٠٠: الرقمان مستقلان (٥/٧٠ نسبة صحيحة في السوق) */
+  ['office','farmRatio'].forEach(r=>g(r).addEventListener('input',()=>{
+    S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()}));
   g('commission').addEventListener('input',()=>{S.form.settle={...(S.form.settle||{}),commissionTouched:true};syncSettle()});
   ['expenses','prevDebt'].forEach(r=>g(r).addEventListener('input',syncSettle));
   syncSettle();
@@ -1638,6 +1756,11 @@ function syncSettle(){
   if(!touched)g('commission').value=c.commission;
   g('net').value=Math.round(c.net*100)/100;g('payable').value=Math.round(c.payable*100)/100;
   $('[data-role=cyc]',f).textContent=x?`${x.cycleCount} فاتورة · ${x.cycleBoxes} صندوق في الدورة`:"اختر مزرعة.";
+  const pe=$('[data-role=pct]',f);
+  if(pe)pe.innerHTML=c.pct>0
+    ?`<b class="num">${raw.office} ÷ ${raw.farmRatio}</b> = <b class="num">${Math.round(c.pct*1000)/1000}%</b>
+       · العمولة قبل التقريب <b class="num">${money(raw.total*c.pct/100)}</b>`
+    :"اكتب بسطاً ومقاماً أكبر من صفر.";
   $('[data-role=tape]',f).innerHTML=(x&&c.total>0)?tapeHTML({farmName:x.name,farmId:x.id,date:f.date.value,count:x.cycleCount,boxes:x.cycleBoxes,...c}):'';
   S.form.settle={...raw,farmId:f.farmId.value,date:f.date.value};
 }
@@ -1678,11 +1801,13 @@ async function onSubmit(ev){
       await setMeta('company',S.co);await refresh();return toast("تم حفظ بيانات الشركة","ok")}
     if(kind==='invoice'){
       if(!p.farmId||!p.merchantId)return toast("اختر المزرعة والمبيع","err");
-      if(+p.amount<=0)return toast("الإجمالي أكبر من صفر","err");
+      const amt=+p.amount||0;
       const inv=await append({type:'invoice',date:p.date,farmId:p.farmId,merchantId:p.merchantId,
-        boxes:Math.max(0,Math.round(+p.boxes||0)),amount:+p.amount,note:p.note});
+        boxes:Math.max(0,Math.round(+p.boxes||0)),amount:amt,note:p.note});
       await syncInvoiceBox(inv,null);
-      f.reset();return toast(S.autoBox&&inv.boxes>0?`تم تسجيل الفاتورة + ترحيل ${inv.boxes} صندوق`:"تم تسجيل الفاتورة","ok")}
+      f.reset();
+      return toast(amt>0?(S.autoBox&&inv.boxes>0?`تم تسجيل الفاتورة + ترحيل ${inv.boxes} صندوق`:"تم تسجيل الفاتورة")
+        :"اتحفظت كمسوّدة — اكتب المبلغ بعدين من «مسوّدات»","ok")}
     if(kind==='collection'){
       if(!p.merchantId)return toast("اختر المبيع","err");
       if(+p.amount<=0)return toast("المبلغ أكبر من صفر","err");
@@ -1704,6 +1829,13 @@ async function onSubmit(ev){
       await append({type:'ice_op',date:p.date,factoryId:p.factoryId,farmId:p.farmId,
         qty:Math.round(+p.qty),unitPrice:+p.unitPrice||0,note:p.note});
       f.reset();return toast("تم تسجيل العملية","ok")}
+    if(kind==='whopen'){
+      const oi=Math.round(+p.oIntact||0),od=Math.round(+p.oDamaged||0);
+      if(!oi&&!od)return toast("اكتب عدداً أكبر من صفر","err");
+      const params={locId:WH,oIntact:oi,oDamaged:od};
+      await append({type:'box',op:'opening_box',date:p.date||todayISO(),
+        legs:buildLegs('opening_box',params),params,note:'رصيد المخزن الافتتاحي'});
+      f.reset();return toast("تم تسجيل رصيد المخزن","ok")}
     if(kind==='audit')return doAudit(p,f);
     if(kind==='box')return doBox(f.dataset.op,p,f);
     if(kind==='settle')return doSettle(f);
@@ -1764,8 +1896,7 @@ async function doSettle(f){
   if(!x.cycleCount)return toast("لا توجد فواتير غير مصفّاة","err");
   const c=calcSettlement({total:x.cycleTotal,office:+g('office').value||0,farmRatio:+g('farmRatio').value||0,
     commission:+g('commission').value||0,expenses:+g('expenses').value||0,prevDebt:+g('prevDebt').value||0,commissionTouched:true});
-  const rs=Math.round((c.office+c.farmRatio)*100)/100;
-  if(rs!==100&&!await ask("النِسَب لا تكمّل ١٠٠٪","مجموع النسبتين "+rs+"% وليس 100%.\nتكمل بالاعتماد؟"))return;
+  if(!(c.office>0&&c.farmRatio>0))return toast("اكتب النسبة بسطاً ومقاماً، مثل ٤ / ٩٦","err");
   if(!await requireOwner("اعتماد تصفية مزرعة"))return;
   if(!await ask("اعتماد تصفية «"+x.name+"»",`الإجمالي: ${money(c.total)} ج.م\nالمستحق النهائي: ${money(c.payable)} ج.م\nالدورة تُقفل ولا تُعدَّل بعد الاعتماد.`,{ok:"اعتماد"}))return;
   const rec=await append({type:'settlement',date:f.date.value||todayISO(),farmId:x.id,...c,
@@ -1962,13 +2093,24 @@ function runTests(){
 
   d=D([inv('a',500,20),bx('sale_move',[{from:'f1',to:'m1',cond:'intact',count:20}],{auto:true,invoiceId:'a'})]);
   ok("حركة البكش لا تغيّر أي رصيد مالي",d.merchants[0].balance===500&&d.farms[0].balance===500);
-  ok("إجمالي العهدة = مخزن + مبايع + مزارع",d.custody.all===d.wh.total+d.custody.merchants+d.custody.farms+d.custody.sups);
+  ok("إجمالي العهدة = مخزن + مبايع + مزارع",d.custody.all===d.wh.total+d.custody.merchants+d.custody.farms);
 
   d=D([inv('a',0.1),inv('b',0.2),inv('c',0.3)]);
   ok("جمع المبالغ بلا انحراف عشري",d.merchants[0].balance===0.6);
 
   d=D([inv('a',100,0,'f1'),inv('b',250,0,'f2')]);
   ok("فصل أرصدة المزارع عن بعضها",d.farms[0].balance===100&&d.farms[1].balance===250);
+
+  d=D([inv('a',1000),{...inv('b',0,25),amount:0}]);
+  ok("المسوّدة لا تدخل الحسابات",d.merchants[0].balance===1000&&d.farms[0].balance===1000);
+  ok("المسوّدة تُعدّ في قائمة الانتظار",d.drafts.length===1);
+
+  ok("النسبة كسر: ٤/٩٦ = ٤٫١٦٧٪",Math.abs(calcSettlement({total:10000,office:4,farmRatio:96}).pct-100*4/96)<1e-9);
+  ok("النسبة كسر: ٥/٧٠ = ٧٫١٤٣٪",Math.abs(calcSettlement({total:10000,office:5,farmRatio:70}).pct-100*5/70)<1e-9);
+  ok("العمولة مقرَّبة لأقرب ٥٠",calcSettlement({total:10000,office:4,farmRatio:96}).commission===400);
+  ok("٥/٧٠ على ١٠٠٠٠ = ٧٠٠",calcSettlement({total:10000,office:5,farmRatio:70}).commission===700);
+  ok("العمولة تقبل التعديل اليدوي",calcSettlement({total:10000,office:4,farmRatio:96,
+    commission:377,commissionTouched:true}).commission===377);
 
   d=D([{type:'opening_cash',entityId:'m1',amount:800},inv('a',200),{type:'collection',merchantId:'m1',amount:1000}]);
   ok("الرصيد الافتتاحي يدخل حساب المبيع",d.merchants[0].balance===0);
@@ -2025,7 +2167,8 @@ function shareWA(text,phone){
 function receiptText(r){
   return ["*إيصال تصفية مزرعة*","المزرعة: "+r.farmName,"التاريخ: "+arDate(r.date),
   `عدد الفواتير: ${r.count} فاتورة / ${r.boxes} صندوق`,"————————————",
-  "إجمالي المبيعات: "+EGP(r.total),`نسبة المكتب ${r.office}% : − `+EGP(r.commission),
+  "إجمالي المبيعات: "+EGP(r.total),
+  `عمولة المكتب ${r.office}/${r.farmRatio} (${Math.round(ratioPct(r.office,r.farmRatio)*100)/100}%) : − `+EGP(r.commission),
   "مصاريف تشغيل: − "+EGP(r.expenses),"صافي المزرعة: "+EGP(r.net),"دين سابق: − "+EGP(r.prevDebt),
   "————————————",(r.payable>=0?"*المستحق للمزرعة: ":"*مستحق على المزرعة: ")+EGP(Math.abs(r.payable))+"*",
   "",(S.co.name||"دفتر السماكة")].join("\n");
@@ -2036,13 +2179,13 @@ function receiptHTML(r){
   <table><thead><tr><th>البيان</th><th class="n">المبلغ (ج.م)</th></tr></thead><tbody>
     ${L("عدد الفواتير",r.count+" فاتورة / "+r.boxes+" صندوق")}
     ${L("إجمالي المبيعات",money(r.total))}
-    ${L("عمولة المكتب "+r.office+"%","− "+money(r.commission))}
+    ${L(`عمولة المكتب ${r.office}/${r.farmRatio} (${Math.round(ratioPct(r.office,r.farmRatio)*100)/100}%)`,"− "+money(r.commission))}
     ${L("مصاريف تشغيل","− "+money(r.expenses))}
     ${L("صافي المزرعة",money(r.net))}
     ${L("دين سابق","− "+money(r.prevDebt))}</tbody>
   <tfoot><tr><td>${r.payable>=0?"المستحق النهائي للمزرعة":"مستحق على المزرعة للمكتب"}</td>
     <td class="n">${money(Math.abs(r.payable))}</td></tr></tfoot></table>
-  <p style="font-size:9.5pt;margin-top:10px">نسبة المزرعة ${r.farmRatio}% · العمولة مقرَّبة لأقرب ٥٠ جنيه.</p>`;
+  <p style="font-size:9.5pt;margin-top:10px">العمولة = الإجمالي × ${r.office} ÷ ${r.farmRatio}، مقرَّبة لأقرب ٥٠ جنيه.</p>`;
 }
 function dailyText(){
   const D=S.D,k=D.kpi,t=todayISO(),P=ty=>D.todays.filter(e=>e.type===ty);
