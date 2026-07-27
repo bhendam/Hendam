@@ -6,7 +6,6 @@
   "dir": "rtl",
   "start_url": "./",
   "scope": "./",
-  "id": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#EDF3F4",

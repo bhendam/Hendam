@@ -626,7 +626,7 @@ function legsOf(e){
 /* ============ الحالة ============ */
 const S={tab:"home",
   sub:{fin:"invoice",ops:"box",box:"out",boxop:"issue_farm",drv:"trips",ice:"op",
-    rep:"box",repbox:"daily",set:"farm",acct:"driver"},
+    rep:"box",repbox:"stmt",set:"farm",acct:"driver"},
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,
@@ -1291,9 +1291,50 @@ function repAcct(){
 }
 function repBox(){
   const D=S.D,F=S.F;
-  const t=seg('repbox',[["daily","يومي"],["audit","الجرد"],["dmg","تالف السائقين"],["log","كل الحركات"]],S.sub.repbox,true);
+  const t=seg('repbox',[["stmt","كشف عهدة"],["daily","يومي"],["audit","الجرد"],
+    ["dmg","تالف السائقين"],["log","كل الحركات"]],S.sub.repbox,true);
   const loc=F.ent||WH;
   const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+
+  /* كشف عهدة: كل حركة تخصّ الجهة سطراً سطراً مع رصيد جارٍ —
+     بما فيها ترحيل البكش الآلي المصاحب لفواتير البيع. */
+  if(S.sub.repbox==='stmt'){
+    let oi=0,od=0;
+    ents.filter(e=>F.from&&e.date<F.from).forEach(e=>legsOf(e).forEach(l=>{
+      if(l.to===loc)l.cond==='intact'?oi+=l.count:od+=l.count;
+      if(l.from===loc)l.cond==='intact'?oi-=l.count:od-=l.count}));
+    const mine=ents.filter(e=>inR(e)&&legsOf(e).some(l=>l.from===loc||l.to===loc))
+      .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+    let ri=oi,rd=od,TI=0,TO=0;
+    const rows=mine.map(e=>{
+      let ii=0,id=0,oo=0,od2=0;const other=new Set();
+      legsOf(e).forEach(l=>{
+        if(l.to===loc){l.cond==='intact'?ii+=l.count:id+=l.count;if(l.from!==loc)other.add(D.nameOf(l.from))}
+        if(l.from===loc){l.cond==='intact'?oo+=l.count:od2+=l.count;if(l.to!==loc)other.add(D.nameOf(l.to))}});
+      ri+=ii-oo;rd+=id-od2;TI+=ii+id;TO+=oo+od2;
+      return `<tr><td class="n">${arDate(e.date)}</td>
+        <td>${esc(BOXOP[e.op]||'حركة')}${e.auto?' <span class="tag">آلي</span>':''}</td>
+        <td>${esc([...other].join(' · ')||'—')}</td>
+        <td class="n cin">${ii+id||''}</td><td class="n cout">${oo+od2||''}</td>
+        <td class="n" style="font-weight:600">${ri}/${rd}</td></tr>`}).join('');
+    const tbl=`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الطرف الآخر</th>
+      <th class="n">وارد</th><th class="n">صادر</th><th class="n">الرصيد سليم/تالف</th></tr></thead>
+      <tbody><tr><td colspan="3">رصيد افتتاحي للفترة</td><td class="n"></td><td class="n"></td>
+        <td class="n" style="font-weight:600">${oi}/${od}</td></tr>${rows}</tbody>
+      <tfoot><tr><td colspan="3">الإجمالي (${mine.length} حركة)</td>
+        <td class="n">${TI}</td><td class="n">${TO}</td>
+        <td class="n">${ri}/${rd}</td></tr></tfoot></table>`;
+    S.print={title:`كشف عهدة البكش — ${D.nameOf(loc)}`,html:tbl,phone:D.phoneOf(loc)};
+    const b=D.boxOf(loc);
+    return t+`<div class="eyebrow">كشف عهدة — ${esc(D.nameOf(loc))}</div>
+      <div class="card">
+        <div class="diff"><span>رصيد افتتاحي للفترة</span><b>${oi} سليم · ${od} تالف</b></div>
+        ${mine.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى المحدد</div>'}
+        <div class="diff over"><span>رصيد آخر الفترة</span><b>${ri} سليم · ${rd} تالف</b></div>
+        <div class="diff"><span>الرصيد الحالي الكلي</span><b>${b.intact} سليم · ${b.damaged} تالف${b.loss?` · فاقد ${b.loss}`:''}</b></div>
+        <p class="note">يشمل ترحيل البكش الآلي المصاحب لفواتير البيع (المعلَّم بـ«آلي»).
+          غيّر «الجهة» من الفلتر فوق لعرض كشف مزرعة أو مبيع آخر.</p></div>`;
+  }
   if(S.sub.repbox==='daily'){
     /* رصيد افتتاحي = كل الحركات قبل «من»، ثم يوم بيوم: وارد − صادر = رصيد ختامي */
     let oI=0,oD=0;
@@ -1542,6 +1583,11 @@ function vSet(){
         :'التثبيت بيخليه يفتح لوحده وسط تطبيقات الجهاز بدل تبويب في كروم.'}</div></div>
     ${isStandalone()?'':`<button class="btn sm" data-act="install">تثبيت</button>`}
   </div>
+  ${isStandalone()?'':`<div class="card">
+    <button class="btn ghost" data-act="installDiag">🔎 لماذا لا يظهر خيار التثبيت؟</button>
+    ${S.diag&&S.diag.kind==='install'?diagHTML():''}
+    <p class="note">يفحص شروط كروم واحداً واحداً ويقول لك الناقص بالضبط.</p>
+  </div>`}
   <div class="eyebrow debt">الأمان والصلاحيات</div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1587,6 +1633,10 @@ function vSet(){
 }
 function diagHTML(){
   const d=S.diag;if(!d)return '';
+  if(d.kind==='install')return `<div style="margin-top:12px">${d.rows.map(r=>
+    `<div class="diff ${r.ok?'over':'short'}" style="padding:9px 12px;font-size:13.5px;align-items:flex-start">
+      <span>${esc(r.n)}${r.hint?`<br><span style="font-size:12.5px;opacity:.85">${esc(r.hint)}</span>`:''}</span>
+      <b>${r.ok?'✓':'✗'}</b></div>`).join('')}</div>`;
   if(d.kind==='chain')return `<div class="diff ${d.ok?'over':'short'}" style="margin-top:12px">
     <span>${d.ok?'السلسلة سليمة':'انكسرت السلسلة عند الحركة رقم '+d.bad.seq}</span>
     <b>${d.total-d.unsigned}/${d.total} موقَّعة</b></div>
@@ -1679,6 +1729,7 @@ function onClick(ev){
   const go=(tab,sub)=>{S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
     case 'install':return doInstall();
+    case 'installDiag':return installDiag();
     case 'toggleRec':S.openRec=S.openRec===id?null:id;return render();
     case 'goHome':S.tab='home';S.toTop=true;return render();
     case 'more':S.page=(S.page||0)+1;return render();
@@ -2291,13 +2342,50 @@ async function doInstall(){
 }
 /* عامل الخدمة: بدونه لا تثبيت حقيقي ولا عمل مضمون بدون إنترنت */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  navigator.serviceWorker.register('sw.js').then(reg=>{
+  navigator.serviceWorker.register('sw.js',{scope:'./'}).then(reg=>{
+    S.swReg=true;
     reg.addEventListener('updatefound',()=>{
       const w=reg.installing;
       w&&w.addEventListener('statechange',()=>{
         if(w.state==='installed'&&navigator.serviceWorker.controller)
           toast("فيه تحديث جاهز — اقفل التطبيق وافتحه","ok")})})
-  }).catch(()=>{});
+  }).catch(err=>{S.swErr=err.message});
+}
+
+/* تشخيص التثبيت: يفحص شروط كروم واحداً واحداً ويقول أيّها لم يتحقق.
+   بدونه يظل المستخدم يخمّن لماذا يظهر «اختصار» بدل «تطبيق». */
+async function installDiag(){
+  const R=[],add=(n,ok,hint)=>R.push({n,ok,hint:ok?'':hint});
+  const https=location.protocol==='https:'||location.hostname==='localhost';
+  add("الرابط آمن (https)",https,"لازم ترفع الملفات على GitHub Pages — الفتح المحلي لا يسمح بالتثبيت إطلاقاً");
+  let man=null,mUrl='';
+  try{
+    const l=document.querySelector('link[rel=manifest]');
+    mUrl=l.href; const r=await fetch(mUrl,{cache:'no-store'});
+    add("ملف manifest.json يتحمّل",r.ok,"الملف غير مرفوع أو مساره غلط");
+    if(r.ok){man=await r.json();
+      add("الاسم والعرض المستقل",!!(man.name&&man.display==='standalone'),"المانيفست ناقص");
+      const need=['192x192','512x512'];
+      add("أيقونتا ١٩٢ و ٥١٢",need.every(z=>(man.icons||[]).some(i=>i.sizes===z)),"المانيفست ناقص أيقونات");
+      let iok=true;
+      for(const ic of (man.icons||[])){
+        try{const rr=await fetch(new URL(ic.src,mUrl),{cache:'no-store'});if(!rr.ok)iok=false}catch(e){iok=false}}
+      add("ملفات الأيقونات مرفوعة",iok,"ارفع مجلد icons كامل بجانب index.html");
+      const sc=new URL(man.scope||'./',mUrl).pathname;
+      add("النطاق يطابق الرابط",location.pathname.startsWith(sc),"scope في المانيفست لا يغطي رابط الصفحة");
+    }
+  }catch(e){add("ملف manifest.json يتحمّل",false,e.message)}
+  if('serviceWorker' in navigator){
+    let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
+    add("عامل الخدمة مسجَّل",!!reg,S.swErr||"ارفع sw.js في نفس مجلد index.html");
+    add("عامل الخدمة يتحكّم بالصفحة",!!navigator.serviceWorker.controller,"حدّث الصفحة مرة واحدة ثم أعد الفحص");
+  }else add("المتصفح يدعم عامل الخدمة",false,"استخدم Chrome على أندرويد أو Safari على آيفون");
+  add("المتصفح عرض خيار التثبيت",!!installEvt||isStandalone(),
+    isIOS()?"آيفون لا يدعم الخيار: Safari ← مشاركة ⬆️ ← إضافة إلى الشاشة الرئيسية"
+    :"لو كل ما فوق ✓ حدّث الصفحة، استنى ٥ ثوانٍ، وتصفّح شاشتين قبل ما تعيد الفحص");
+  S.diag={kind:'install',rows:R};render();
+  const bad=R.filter(x=>!x.ok).length;
+  toast(bad?`${bad} شرط ناقص للتثبيت`:"كل الشروط مستوفاة",bad?"err":"ok");
 }
 /* فحص التخزين قبل أي شيء: المتصفحات تمنع IndexedDB عند فتح الملف مباشرة (file://)
    فتفشل الكتابة بصمت ويظن المستخدم أن الإضافة لا تعمل. نقولها صراحة. */
