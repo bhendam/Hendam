@@ -9,13 +9,13 @@
    عند تعديل أي ملف: غيّر رقم النسخة في VERSION حتى يأخذ
    المستخدمون التحديث بدل النسخة القديمة المخزَّنة.
    =========================================================== */
-const VERSION = 'v1.0.1';
+const VERSION = 'v1.0.2';
 const CACHE   = 'fish-ledger-' + VERSION;
 
 const ASSETS = [
   './',
   './index.html',
-  './manifest.webmanifest',
+  './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png'

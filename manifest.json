@@ -1,0 +1,79 @@
+{
+  "name": "دفتر السماكة — إدارة تجارة الأسماك",
+  "short_name": "دفتر السماكة",
+  "description": "سجل تراكمي لإدارة تجارة الأسماك: حسابات المزارع والمبايع، عهدة البكش، السائقين والثلج. يعمل بدون إنترنت.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EDF3F4",
+  "theme_color": "#08222E",
+  "categories": [
+    "business",
+    "productivity",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "فاتورة بيع",
+      "short_name": "فاتورة",
+      "url": "./?go=invoice",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "تحصيل من مبيع",
+      "short_name": "تحصيل",
+      "url": "./?go=collect",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "حركة بكش",
+      "short_name": "بكش",
+      "url": "./?go=box",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "prefer_related_applications": false
+}

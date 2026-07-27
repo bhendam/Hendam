@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#08222E">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="دفتر السماكة">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="إدارة تجارة الأسماك — سجل تراكمي يعمل بدون إنترنت">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%230F7B76'/><rect x='146' y='112' width='220' height='288' rx='16' fill='%23ffffff' /><rect x='216' y='80' width='80' height='48' rx='12' fill='%23A97B22'/><rect x='236' y='64' width='40' height='24' rx='8' fill='%23ffffff' opacity='0.9'/><line x1='186' y1='170' x2='326' y2='170' stroke='%230F7B76' stroke-width='12' stroke-linecap='round' opacity='0.3'/><line x1='186' y1='210' x2='276' y2='210' stroke='%230F7B76' stroke-width='12' stroke-linecap='round' opacity='0.3'/><polygon points='190,320 140,290 140,350' fill='%230F7B76'/><path d='M 190 320 Q 260 260 330 320 Q 260 380 190 320 Z' fill='%230F7B76'/><circle cx='295' cy='315' r='6' fill='%23A97B22'/></svg>">
 <link rel="alternate icon" href="icons/icon-192.png">
@@ -613,6 +615,10 @@ function vHome(){
   const drvList=D.drivers.filter(x=>Math.abs(x.balance)>.004).sort((a,b)=>b.balance-a.balance);
 
   return `
+  ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:14px">
+    <div class="lbl">📲 ثبّت التطبيق على الجهاز</div>
+    <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
+    <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
   ${(()=>{const a=bkAge();return a.since>=25?`<button class="tile debt" data-act="exportJSON" style="margin-bottom:14px">
     <div class="lbl">⚠️ نسخة احتياطية مطلوبة</div>
     <div class="val sm" style="color:var(--debt)">${a.since} حركة بلا نسخة</div>
@@ -1209,6 +1215,14 @@ function vSet(){
       <div class="note" style="margin:2px 0 0">مع كل فاتورة بيع تُنشأ حركة «بكش بيع سمك» من المزرعة إلى المبيع بنفس عدد الصناديق، وتتبع الفاتورة في التعديل والحذف.</div></div>
     <button class="btn sm ${S.autoBox?'':'ghost'}" data-act="toggleAuto">${S.autoBox?'مفعّل':'موقوف'}</button>
   </div>
+  <div class="eyebrow">التثبيت</div>
+  <div class="card" style="display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><b style="font-size:13.5px">${isStandalone()?'التطبيق مثبَّت ✓':'التطبيق يعمل في المتصفح'}</b>
+      <div class="note" style="margin:2px 0 0">${isStandalone()
+        ?'شغّال كتطبيق مستقل — من غير شريط المتصفح.'
+        :'التثبيت بيخليه يفتح لوحده وسط تطبيقات الجهاز بدل تبويب في كروم.'}</div></div>
+    ${isStandalone()?'':`<button class="btn sm" data-act="install">تثبيت</button>`}
+  </div>
   <div class="eyebrow debt">الأمان والصلاحيات</div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1332,6 +1346,7 @@ function onClick(ev){
   const a=b.dataset.act,id=b.dataset.id;
   const go=(tab,sub)=>{S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
+    case 'install':return doInstall();
     case 'goHome':S.tab='home';S.toTop=true;return render();
     case 'more':S.page=(S.page||0)+1;return render();
     case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
@@ -1869,6 +1884,35 @@ $('#app').addEventListener('click',onClick);
 $('#sheet').addEventListener('click',onClick);
 $('#nav').addEventListener('click',ev=>{const b=ev.target.closest('button[data-tab]');if(!b)return;
   S.tab=b.dataset.tab;S.toTop=true;render()});
+/* ============ التثبيت كتطبيق ============
+   كروم بيفرّق بين «اختصار» (يفتح في تبويب) و«تثبيت تطبيق» (يفتح لوحده
+   وسط تطبيقات الجهاز). التثبيت الحقيقي بيحتاج: رابط https + مانيفست سليم
+   + عامل خدمة له معالج fetch. لما تتحقق الشروط بيطلق المتصفح حدث
+   beforeinstallprompt، فنمسكه ونعرض زر تثبيت داخل التطبيق. */
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches
+  ||matchMedia('(display-mode: minimal-ui)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+let installEvt=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;S.canInstall=true;
+  if(S.D)render()});
+addEventListener('appinstalled',()=>{installEvt=null;S.canInstall=false;
+  toast("تم تثبيت التطبيق — افتحه من شاشة الجهاز","ok");if(S.D)render()});
+async function doInstall(){
+  if(installEvt){
+    installEvt.prompt();
+    const r=await installEvt.userChoice;
+    installEvt=null;S.canInstall=false;render();
+    if(r.outcome!=='accepted')toast("تقدر تثبّته في أي وقت من الإعدادات","ok");
+    return;
+  }
+  /* المتصفح لم يطلق الحدث: إمّا آيفون (لا يدعمه) أو الشروط غير مكتملة */
+  const file=location.protocol==='file:';
+  await ask("تثبيت التطبيق على الجهاز",
+    file?"أنت فاتح الملف مباشرة من الجهاز، والتثبيت مستحيل في الحالة دي.\n\nارفع الملفات على GitHub Pages وافتح الرابط من المتصفح، وبعدها هيظهر خيار التثبيت."
+    :isIOS()?"على آيفون:\n\n١. افتح الصفحة في Safari (مش كروم).\n٢. اضغط زر المشاركة ⬆️ تحت.\n٣. اختر «إضافة إلى الشاشة الرئيسية».\n\nهيفتح بملء الشاشة من غير شريط المتصفح."
+    :"على أندرويد (Chrome):\n\n١. اضغط قائمة ⋮ فوق يمين.\n٢. اختر «تثبيت التطبيق» — مش «إضافة إلى الشاشة الرئيسية».\n\nلو الخيار مش ظاهر: تأكد إن الرابط https، وحدّث الصفحة، واستنى ثواني.",
+    {ok:"تمام",cancel:"إغلاق"});
+}
 /* عامل الخدمة: بدونه لا تثبيت حقيقي ولا عمل مضمون بدون إنترنت */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -1891,6 +1935,12 @@ async function storageProbe(){
 (async function boot(){
   try{
     await storageProbe();
+    /* اختصارات الضغط المطوّل على أيقونة التطبيق */
+    const g=new URLSearchParams(location.search).get('go');
+    const GO={invoice:['fin',{fin:'invoice'}],collect:['fin',{fin:'collect'}],
+      box:['ops',{ops:'box',box:'out'}],trip:['ops',{ops:'drv',drv:'trips'}],
+      ice:['ops',{ops:'ice',ice:'op'}]}[g];
+    if(GO){S.tab=GO[0];Object.assign(S.sub,GO[1]);history.replaceState({},'',location.pathname)}
     await refresh();
     navigator.storage?.persist?.().catch(()=>{});
   }catch(e){
