@@ -2628,7 +2628,8 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       w&&w.addEventListener('statechange',()=>{
         if(w.state==='installed'&&navigator.serviceWorker.controller)
           toast("فيه تحديث جاهز — اقفل التطبيق وافتحه","ok")})})
-  }).catch(err=>{S.swErr=err.message});
+  }).catch(err=>{S.swErr=err.message;
+    console.warn('SW register failed:',err);});
 }
 
 /* تشخيص التثبيت: يفحص شروط كروم واحداً واحداً ويقول أيّها لم يتحقق.
@@ -2646,17 +2647,23 @@ async function installDiag(){
       add("الاسم والعرض المستقل",!!(man.name&&man.display==='standalone'),"المانيفست ناقص");
       const need=['192x192','512x512'];
       add("أيقونتا ١٩٢ و ٥١٢",need.every(z=>(man.icons||[]).some(i=>i.sizes===z)),"المانيفست ناقص أيقونات");
-      let iok=true;
+      let iok=true,bad='';
       for(const ic of (man.icons||[])){
-        try{const rr=await fetch(new URL(ic.src,mUrl),{cache:'no-store'});if(!rr.ok)iok=false}catch(e){iok=false}}
-      add("ملفات الأيقونات مرفوعة",iok,"ارفع مجلد icons كامل بجانب index.html");
+        if(ic.src.startsWith('data:'))continue;   /* المضمَّنة لا تحتاج رفعاً */
+        const u=new URL(ic.src,mUrl).href;
+        try{const rr=await fetch(u,{cache:'no-store'});if(!rr.ok){iok=false;bad=u}}catch(e){iok=false;bad=u}}
+      add("ملفات الأيقونات مرفوعة",iok,
+        "ناقص: "+bad.replace(location.origin,'')+" — ارفع مجلد icons كامل. (فيه أيقونات مضمَّنة احتياطية فالتثبيت لسه ممكن)");
       const sc=new URL(man.scope||'./',mUrl).pathname;
       add("النطاق يطابق الرابط",location.pathname.startsWith(sc),"scope في المانيفست لا يغطي رابط الصفحة");
     }
   }catch(e){add("ملف manifest.json يتحمّل",false,e.message)}
   if('serviceWorker' in navigator){
     let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
-    add("عامل الخدمة مسجَّل",!!reg,S.swErr||"ارفع sw.js في نفس مجلد index.html");
+    let swUrl=new URL('sw.js',location.href).href,swOk=false;
+    try{const r=await fetch(swUrl,{cache:'no-store'});swOk=r.ok}catch(e){}
+    add("ملف sw.js مرفوع",swOk,"ناقص: "+swUrl.replace(location.origin,'')+" — ارفعه في نفس مجلد index.html");
+    add("عامل الخدمة مسجَّل",!!reg,S.swErr||(swOk?"حدّث الصفحة":"ارفع sw.js أولاً"));
     add("عامل الخدمة يتحكّم بالصفحة",!!navigator.serviceWorker.controller,"حدّث الصفحة مرة واحدة ثم أعد الفحص");
   }else add("المتصفح يدعم عامل الخدمة",false,"استخدم Chrome على أندرويد أو Safari على آيفون");
   add("المتصفح عرض خيار التثبيت",!!installEvt||isStandalone(),
