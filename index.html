@@ -241,6 +241,18 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .btn.sm{padding:11px 14px;font-size:14px;width:auto;min-height:46px}
 .btnrow{display:flex;gap:9px;margin-bottom:12px}.btnrow .btn{flex:1}
 
+/* اختيار الجهات: أسماء ظاهرة بلمسة واحدة */
+.pick{margin:0}
+.pkrow{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{background:var(--card);border:1.5px solid var(--line-2);border-radius:22px;
+  padding:11px 16px;font-size:15px;min-height:46px;color:var(--ink);font-family:inherit;
+  cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pchip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.pchip.pksearch{background:var(--card-2);border-style:dashed;color:var(--ink-2);font-weight:600}
+#pklist .drow{border-bottom:1px solid var(--line);gap:10px}
+#pklist .drow .tname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pklist .drow span:nth-child(2){margin-inline-start:auto}
+
 /* نسبة المكتب كرقمين: ٤ / ٩٦ */
 .ratio{display:flex;align-items:center;gap:10px}
 .ratio input{flex:1;text-align:center;font-size:19px;font-weight:600;
@@ -698,11 +710,30 @@ function derive(entities,ledger){
   custody.all=wh.total+custody.merchants+custody.farms;
 
   const linked=new Set(boxE.filter(e=>e.op==='sale_move'&&e.invoiceId).map(e=>e.invoiceId));
+  /* آخر استخدام لكل جهة — الأكثر استعمالاً يظهر أولاً فيقلّ البحث */
+  const lastUse={};
+  const KEYS=['farmId','merchantId','driverId','factoryId','entityId','locId','routeId','fromId','toId','supId'];
+  live.forEach(e=>{
+    KEYS.forEach(k=>{if(e[k])lastUse[e[k]]=Math.max(lastUse[e[k]]||0,e.seq||0)});
+    if(e.params)KEYS.forEach(k=>{if(e.params[k])lastUse[e.params[k]]=Math.max(lastUse[e.params[k]]||0,e.seq||0)});
+  });
+  const byRecent=arr=>[...arr].sort((a,b)=>(lastUse[b.id]||0)-(lastUse[a.id]||0)||a.name.localeCompare(b.name,'ar'));
   const t=todayISO();
-  return{live,dead,invoices,collections,settlements,actSet,voided,covered,
+  return{live,dead,invoices,collections,settlements,actSet,voided,covered,lastUse,byRecent,
     merchants,farms,drivers,factories,mBox,fBox,boxOf,wh,custody,repCost,nameOf,phoneOf,ent,
     trips,adv,dpay,iceOps,fpay,boxE,
     openOf,opens,drafts,allInv,
+    recent:(()=>{const R={};const take=(k,f)=>{const o=[];
+      for(let i=live.length-1;i>=0&&o.length<8;i--){const v=f(live[i]);if(v&&!o.includes(v))o.push(v)}
+      R[k]=o};
+      take('farm',e=>e.farmId||(e.params&&(e.params.farmId||e.params.toId)));
+      take('merchant',e=>e.merchantId);
+      take('driver',e=>e.driverId);
+      take('ice',e=>e.factoryId);
+      take('route',e=>e.routeId);
+      R.loc=['WH'].concat(R.farm,R.merchant).slice(0,8);
+      R.farmerchant=R.farm.concat(R.merchant).slice(0,8);
+      return R})(),
     unlinked:invoices.filter(i=>(+i.boxes||0)>0&&!linked.has(i.id)),
     routes:list('route'),activeFarms:farms.filter(f=>f.cycleCount>0),
     locOptions:[{id:WH,name:'المخزن'},...farms,...merchants],
@@ -787,6 +818,118 @@ function render(){
     }
   }
   window.scrollTo(0,S.toTop?0:sy);S.toTop=false;
+}
+/* اختيار الجهة: القوائم المنسدلة تحتاج لمستين وتمريراً وقراءة نص صغير.
+   القوائم القصيرة تُعرض كأزرار تُختار بلمسة واحدة، والطويلة (المزارع) عبر بحث. */
+const INLINE_MAX=24;
+function pickList(kind){
+  const D=S.D;
+  return ({farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
+    loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]})[kind]||[];
+}
+const PICKPH={farm:'اختر المزرعة',merchant:'اختر المبيع',driver:'اختر السائق',ice:'اختر المصنع',
+  route:'اختر الرحلة',loc:'اختر الجهة أو المخزن',farmerchant:'اختر الجهة'};
+function picker(name,kind,sel,o={}){
+  const D=S.D,raw=pickList(kind),list=D.byRecent?D.byRecent(raw):raw;
+  const role=o.role?` data-role="${o.role}"`:'';
+  const hid=`<input type="hidden" name="${name}" value="${esc(sel||'')}" data-pick="${name}"${role}>`;
+  if(!list.length)return hid+`<div class="empty" style="padding:14px">لا يوجد — أضفه من «الإعدادات»</div>`;
+  if(list.length<=(o.max??INLINE_MAX)){
+    return hid+`<div class="pks">${list.map(x=>
+      `<button type="button" class="pk" data-act="pick" data-name="${name}" data-id="${x.id}"
+        aria-pressed="${sel===x.id}">${esc(x.name)}</button>`).join('')}</div>`;
+  }
+  const cur=list.find(x=>x.id===sel);
+  return hid+`<button type="button" class="pkbtn ${cur?'has':''}" data-act="pickOpen"
+    data-name="${name}" data-kind="${kind}">
+    <span class="pkv">${esc(cur?cur.name:(o.ph||PICKPH[kind]||'اختر…'))}</span>
+    <span class="pkg">🔍 بحث</span></button>`;
+}
+/* ============ اختيار الجهات ============
+   الاختيار من قائمة منسدلة على الموبايل بطيء ويخفي الخيارات.
+   ≤ ٢٤ جهة  → كل الأسماء ظاهرة، لمسة واحدة تختار.
+   > ٢٤ جهة  → آخر المستخدمة ظاهرة + بحث فوري في الباقي (حالة المزارع).
+   القيمة تُحفظ في حقل مخفي بنفس الاسم، فلا يتغيّر أي منطق قائم. */
+const PICKMAX=24;
+let _pk=0;
+function entList(t){
+  const D=S.D;
+  return {farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
+    loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]}[t]||[];
+}
+function entPick(name,type,sel,o={}){
+  const items=entList(type),id='pk'+(++_pk);
+  const many=items.length>PICKMAX;
+  let show=items;
+  if(many){
+    const rec=(S.D.recent[type]||[]).map(x=>items.find(i=>i.id===x)).filter(Boolean);
+    show=[...rec];
+    if(show.length<6)for(const i of items){if(show.length>=6)break;if(!show.some(x=>x.id===i.id))show.push(i)}
+    if(sel&&!show.some(i=>i.id===sel)){const x=items.find(i=>i.id===sel);if(x)show.unshift(x)}
+  }
+  const chip=i=>`<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}</button>`;
+  return `<div class="pick" id="${id}" data-name="${name}" data-ent="${type}">
+    <input type="hidden" name="${name}" value="${sel||''}"${o.role?` data-role="${o.role}"`:''}>
+    <div class="pkrow">
+      ${show.map(chip).join('')}
+      ${o.optional?`<button type="button" class="pchip" data-pv="" aria-pressed="${!sel}">بدون</button>`:''}
+      ${many?`<button type="button" class="pchip pksearch" data-act="pkOpen" data-pk="${id}">🔎 بحث في ${items.length}</button>`:''}
+    </div>
+    ${items.length?'':`<div class="empty" style="padding:14px">لا يوجد — أضف من «الإعدادات»</div>`}</div>`;
+}
+/* ورقة البحث: تصفية فورية بالاسم أو المكان */
+function openPicker(pkId){
+  const el=$('#'+pkId);if(!el)return;
+  const type=el.dataset.ent,cur=el.querySelector('input').value;
+  const items=entList(type);
+  const draw=q=>{
+    const t=(q||'').trim().toLowerCase();
+    const f=t?items.filter(i=>(i.name+' '+(i.place||'')).toLowerCase().includes(t)):items;
+    return f.slice(0,80).map(i=>`<button type="button" class="drow" data-pv="${i.id}">
+      <span class="tname">${esc(i.name)}</span>
+      ${i.place?`<span style="color:var(--muted);font-size:13px">${esc(i.place)}</span>`:''}
+      <span class="go">${i.id===cur?'✓':'‹'}</span></button>`).join('')||`<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
+  };
+  const d=$('#dlg');
+  d.innerHTML=`<div class="sheet"><h3>اختر ${esc(ENTAR[type]||'جهة')}</h3>
+    <p class="sub">${items.length} مسجَّلة — اكتب حرفين للتصفية</p>
+    <div class="field"><input id="pkq" placeholder="بحث بالاسم أو المكان…" autocomplete="off" enterkeyhint="search"></div>
+    <div id="pklist" style="max-height:50vh;overflow:auto">${draw('')}</div>
+    <button type="button" class="btn ghost" id="pkx" style="margin-top:12px">إلغاء</button></div>`;
+  d.classList.add('on');
+  const close=()=>{d.classList.remove('on');d.innerHTML='';d.onclick=null};
+  const q=$('#pkq');
+  q.addEventListener('input',()=>{$('#pklist').innerHTML=draw(q.value)});
+  d.onclick=ev=>{
+    if(ev.target===d||ev.target.id==='pkx')return close();
+    const b=ev.target.closest('[data-pv]');if(!b)return;
+    setPick(pkId,b.dataset.pv);close();
+  };
+  setTimeout(()=>q.focus(),90);
+}
+function setPick(pkId,val){
+  const el=$('#'+pkId);if(!el)return;
+  const inp=el.querySelector('input');
+  inp.value=val;
+  const row=el.querySelector('.pkrow');
+  let found=false;
+  el.querySelectorAll('.pchip[data-pv]').forEach(b=>{
+    const on=b.dataset.pv===val;b.setAttribute('aria-pressed',String(on));if(on)found=true});
+  if(val&&!found){
+    const it=entList(el.dataset.ent).find(i=>i.id===val);
+    if(it){const b=document.createElement('button');b.type='button';b.className='pchip';
+      b.dataset.pv=val;b.setAttribute('aria-pressed','true');b.textContent=it.name;
+      row.insertBefore(b,row.firstChild)}
+  }
+  inp.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function entPickList(name,items,sel){
+  const id='pk'+(++_pk);
+  return `<div class="pick" id="${id}" data-name="${name}" data-ent="farm">
+    <input type="hidden" name="${name}" value="${sel||''}">
+    <div class="pkrow">${items.map(i=>
+      `<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}</button>`).join('')
+      ||'<div class="empty" style="padding:14px">لا يوجد</div>'}</div></div>`;
 }
 const opt=(items,sel,ph)=>`<option value="">${ph}</option>`+items.map(i=>`<option value="${i.id}"${i.id===sel?' selected':''}>${esc(i.name)}</option>`).join('');
 const seg=(key,tabs,cur,inner)=>`<div class="seg${inner?' inner':''}" data-seg="${key}">`+tabs.map(([k,l])=>`<button data-sub="${k}" aria-selected="${cur===k}">${l}</button>`).join('')+`</div>`;
@@ -906,8 +1049,8 @@ function fInvoice(){
   return `<div class="eyebrow">فاتورة بيع جديدة</div>
   <div class="card"><form data-form="invoice">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>المزرعة</label><select name="farmId" required>${opt(D.farms,"","اختر المزرعة")}</select></div>
-    <div class="field"><label>المبيع</label><select name="merchantId" required>${opt(D.merchants,"","اختر المبيع")}</select></div>
+    <div class="field"><label>المزرعة</label>${entPick('farmId','farm','')}</div>
+    <div class="field"><label>المبيع</label>${entPick('merchantId','merchant','')}</div>
     <div class="row"><div class="field"><label>عدد الصناديق <span class="hint">للمراجعة</span></label>
       <input type="number" name="boxes" min="0" step="1" inputmode="numeric" required></div>
       <div class="field"><label>الإجمالي (ج.م) <span class="hint">اتركه فاضياً كمسوّدة</span></label>
@@ -938,7 +1081,7 @@ function fCollect(){
   return `<div class="eyebrow">تحصيل من مبيع</div>
   <div class="card"><form data-form="collection">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>المبيع</label><select name="merchantId" data-role="mpick" required>${opt(D.merchants,"","اختر المبيع")}</select>
+    <div class="field"><label>المبيع</label>${entPick('merchantId','merchant','',{role:'mpick'})}
       <p data-role="mhint" class="note">اختر مبيعاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ (ج.م)</label><div class="with-btn">
       <input type="text" name="amount" inputmode="decimal" required>
@@ -953,7 +1096,8 @@ function fSettle(){
   const f=S.form.settle||{};
   return `<div class="eyebrow brass">تصفية وأرشفة دورة مزرعة</div>
   <div class="card"><form data-form="settle">
-    <div class="field"><label>المزرعة</label><select name="farmId" required>${opt(D.activeFarms,f.farmId||"","اختر المزرعة")}</select></div>
+    <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
+      ${entPickList('farmId',D.activeFarms,f.farmId||"")}</div>
     <div class="field"><label>تاريخ التصفية</label><input type="date" name="date" value="${f.date||todayISO()}" required></div>
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
@@ -1053,7 +1197,7 @@ function auditForm(){
     <p class="note" style="margin:0 0 14px">${BOXHINT.audit||'الفرق بين المعدود والدفتري يُقيَّد آلياً.'}</p>
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     <div class="field"><label>الجهة المجرودة <span class="hint">اختر «المخزن» لجرد المخزن</span></label>
-      <select name="locId" required>${opt(D.locOptions,"","اختر الجهة أو المخزن")}</select></div>
+      ${entPick('locId','loc','')}</div>
     <div class="row"><div class="field"><label>المعدود سليم</label><input type="number" name="cIntact" min="0" step="1" inputmode="numeric" value="0"></div>
       <div class="field"><label>المعدود تالف</label><input type="number" name="cDamaged" min="0" step="1" inputmode="numeric" value="0"></div></div>
     <div data-role="adiff"></div>
@@ -1078,12 +1222,8 @@ function fieldHTML(k,l,t,e,optional,val=""){
     <option value="intact"${val==='intact'?' selected':''}>سليم</option><option value="damaged"${val==='damaged'?' selected':''}>تالف</option></select></div>`;
   if(t==='text')return `<div class="field"><label>${l}</label><input name="${k}" value="${esc(val)}"></div>`;
   if(t==='date')return `<div class="field"><label>${l}</label><input type="date" name="${k}" value="${val||todayISO()}" required></div>`;
-  if(t==='ent'){
-    const src={farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
-      loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]}[e]||[];
-    return `<div class="field"><label>${l}${optional?' <span class="hint">اختياري</span>':''}</label>
-      <select name="${k}" ${optional?'':'required'} data-ent="${e}">${opt(src,val,optional?'بدون':'اختر…')}</select></div>`;
-  }
+  if(t==='ent')return `<div class="field"><label>${l}${optional?' <span class="hint">اختياري</span>':''}</label>
+      ${entPick(k,e,val,{optional})}</div>`;
   return '';
 }
 function bxBal(){
@@ -1126,8 +1266,8 @@ function drvTrips(){
   const D=S.D;
   return `<div class="eyebrow">تسجيل رحلة</div><div class="card"><form data-form="trip">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>السائق</label><select name="driverId" required>${opt(D.drivers,"","اختر السائق")}</select></div>
-    <div class="field"><label>الرحلة / نوعها</label><select name="routeId" data-role="routePick" required>${opt(D.routes,"","اختر الرحلة")}</select>
+    <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
+    <div class="field"><label>الرحلة / نوعها</label>${entPick('routeId','route','',{role:'routePick'})}
       ${D.routes.length?'':'<p class="note" style="color:var(--debt)">لا توجد رحلات معرَّفة — أضفها من «الإعدادات ← الرحلات».</p>'}</div>
     <div class="field"><label>الأجرة (ج.م) <span class="hint">تُملأ من بطاقة الرحلة وتقبل التعديل</span></label>
       <input type="text" name="fare" data-role="fare" inputmode="decimal" value="0" required></div>
@@ -1139,7 +1279,7 @@ function drvAdv(){
   const D=S.D;
   return `<div class="eyebrow">سلفة سائق</div><div class="card"><form data-form="driver_advance">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>السائق</label><select name="driverId" required>${opt(D.drivers,"","اختر السائق")}</select></div>
+    <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
     <div class="field"><label>مبلغ السلفة (ج.م)</label><input type="text" name="amount" inputmode="decimal" required></div>
     <div class="field"><label>الغرض</label><input name="note" placeholder="بنزين، صيانة…"></div>
     <button class="btn" type="submit">تسجيل السلفة</button></form></div>
@@ -1154,7 +1294,7 @@ function drvSettle(){
     <p class="note">موجب = مستحق للسائق · سالب = سلف زائدة عليه.</p></div>
   <div class="eyebrow">تصفية حساب سائق</div><div class="card"><form data-form="driver_payment">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>السائق</label><select name="driverId" data-role="apick" data-kind="driver" required>${opt(D.drivers,"","اختر السائق")}</select>
+    <div class="field"><label>السائق</label>${entPick('driverId','driver','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر سائقاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
       <input type="text" name="amount" inputmode="decimal" required>
@@ -1174,11 +1314,11 @@ function iceOp(){
   const D=S.D;
   return `<div class="eyebrow">عملية ثلج</div><div class="card"><form data-form="ice_op">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>المصنع</label><select name="factoryId" data-role="facPick" required>${opt(D.factories,"","اختر المصنع")}</select></div>
+    <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'facPick'})}</div>
     <div class="row"><div class="field"><label>عدد البلاطات</label><input type="number" name="qty" min="1" step="1" inputmode="numeric" required></div>
       <div class="field"><label>سعر البلاطة <span class="hint">آلي · قابل للتعديل</span></label>
         <input type="text" name="unitPrice" data-role="price" inputmode="decimal" value="0" required></div></div>
-    <div class="field"><label>الجهة المستفيدة <span class="hint">مزرعة</span></label><select name="farmId" required>${opt(D.farms,"","اختر المزرعة")}</select></div>
+    <div class="field"><label>الجهة المستفيدة <span class="hint">مزرعة</span></label>${entPick('farmId','farm','')}</div>
     <div class="field"><label>ملاحظة</label><input name="note"></div>
     <button class="btn" type="submit">تسجيل العملية</button>
     <p class="note">تعديل السعر هنا لا يغيّر سعر البلاطة في بطاقة المصنع.</p></form></div>
@@ -1193,7 +1333,7 @@ function iceSettle(){
     <p class="note">حساب نقدي فقط — مصنع الثلج لا تُقيَّد عليه عهدة بكش.</p></div>
   <div class="eyebrow">تصفية حساب مصنع</div><div class="card"><form data-form="factory_payment">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
-    <div class="field"><label>المصنع</label><select name="factoryId" data-role="apick" data-kind="factory" required>${opt(D.factories,"","اختر المصنع")}</select>
+    <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر مصنعاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
       <input type="text" name="amount" inputmode="decimal" required>
@@ -1700,7 +1840,8 @@ function wire(root){
       :m.balance<-.004?`مقدّم: <b class="num" style="color:var(--paid)">${money(-m.balance)}</b> ج.م`:"الحساب على الصفر."});
   const ap=$('[data-role=apick]',root);
   if(ap)ap.addEventListener('change',()=>{
-    const x=(ap.dataset.kind==='driver'?S.D.drivers:S.D.factories).find(y=>y.id===ap.value),h=$('[data-role=ahint]',root);
+    const kind=ap.form&&ap.form.dataset.form==='factory_payment'?'factory':'driver';
+    const x=(kind==='driver'?S.D.drivers:S.D.factories).find(y=>y.id===ap.value),h=$('[data-role=ahint]',root);
     h.innerHTML=!x?"اختر جهة.":Math.abs(x.balance)<=.004?"الحساب على الصفر."
       :x.balance>0?`مستحق له: <b class="num" style="color:var(--debt)">${money(x.balance)}</b> ج.م`
       :`مدفوع بالزيادة: <b class="num" style="color:var(--paid)">${money(-x.balance)}</b> ج.م`});
@@ -1712,7 +1853,12 @@ function wire(root){
     if(f)$('[data-role=price]',root).value=+f.price||0});
   const ip=$('[data-role=invPick]',root);
   if(ip)ip.addEventListener('change',()=>{const o=ip.selectedOptions[0];if(!o||!o.value)return;
-    const f=ip.form;f.farmId.value=o.dataset.farm;f.merchantId.value=o.dataset.merchant;f.count.value=o.dataset.boxes});
+    const f=ip.form;
+    [['farmId','farm'],['merchantId','merchant']].forEach(([k,d])=>{
+      const el=f.elements[k];if(!el)return;
+      const box=el.closest?el.closest('.pick'):null;
+      box?setPick(box.id,o.dataset[d]):el.value=o.dataset[d]});
+    if(f.elements.count)f.elements.count.value=o.dataset.boxes});
   const lg=$('[data-role=logo]',root);
   if(lg)lg.addEventListener('change',()=>{const file=lg.files[0];if(!file)return;
     const r=new FileReader();r.onload=()=>{S.co.logo=r.result;toast("تم تحميل اللوجو — احفظ البيانات","ok")};r.readAsDataURL(file)});
@@ -1724,10 +1870,13 @@ function wire(root){
   if($('form[data-form=settle]',root))wireSettle(root);
 }
 function onClick(ev){
+  const pc=ev.target.closest('.pchip[data-pv]');
+  if(pc){const box=pc.closest('.pick');if(box)return setPick(box.id,pc.dataset.pv)}
   const b=ev.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id;
   const go=(tab,sub)=>{S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
+    case 'pkOpen':return openPicker(b.dataset.pk);
     case 'install':return doInstall();
     case 'installDiag':return installDiag();
     case 'toggleRec':S.openRec=S.openRec===id?null:id;return render();
