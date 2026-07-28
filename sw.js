@@ -9,7 +9,7 @@
    عند تعديل أي ملف: غيّر رقم النسخة في VERSION حتى يأخذ
    المستخدمون التحديث بدل النسخة القديمة المخزَّنة.
    =========================================================== */
-const VERSION = 'v1.5.1';
+const VERSION = 'v1.6.0';
 const CACHE   = 'fish-ledger-' + VERSION;
 const FONTS   = 'fish-ledger-fonts';   // ثابت: الخطوط لا تتغيّر مع نسخ التطبيق
 
@@ -17,9 +17,9 @@ const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable-512.png'
+  './icon-192.png',
+  './icon-512.png',
+  './maskable-512.png'
 ];
 
 /* التثبيت: نخزّن ملفات التطبيق */
